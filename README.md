@@ -22,7 +22,7 @@ A modern web application for generating Hong Kong Mark Six lottery combinations 
 
 ## Project Structure
 
-```
+```bash
 m6g/
 ├── src/
 │   ├── app/                    # Next.js app router
@@ -55,29 +55,33 @@ m6g/
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - Supabase account
 - HKJC API access (for fetching draw results)
 
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd m6g
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    cp .env.example .env.local
    ```
-   
+
    Edit `.env.local` with your configuration:
+
    ```env
    # Supabase Configuration
    SUPABASE_URL=your_supabase_project_url
@@ -90,23 +94,26 @@ m6g/
    ```
 
 4. **Set up the database**
-   
+
    Option A: Run migration script (requires service role key):
+
    ```bash
    npm run migrate:db
    ```
-   
+
    Option B: Manual setup:
    - Create a new Supabase project
    - Run the SQL from `supabase/schema.sql` in the SQL editor
    - Configure Row Level Security (RLS) policies
 
 5. **Convert existing data** (optional)
+
    ```bash
    npm run convert:data
    ```
 
 6. **Run the development server**
+
    ```bash
    npm run dev
    ```
@@ -116,34 +123,41 @@ m6g/
 ## API Endpoints
 
 ### Draw Results
+
 - `GET /api/draws` - Get draw results with optional filtering
 - `POST /api/draws` - Fetch latest results from HKJC API (requires MASTER_API_KEY)
 
 ### Combinations
+
 - `GET /api/combinations` - Get generated combinations
 - `POST /api/combinations` - Generate new combinations
 
 ### Analysis
+
 - `GET /api/analysis` - Get number frequency and pattern analysis
 
 ## Generation Algorithms
 
 ### V1 (Statistical)
+
 - Analyzes historical frequency data
 - Uses statistical patterns from past 1 year of draws
 - Optimizes combinations based on score calculation
 
 ### V2 (Follow-on Patterns)
+
 - Analyzes relationships between consecutive draws
 - Uses weighted probabilities based on historical patterns
 - Focuses on numbers that frequently follow recent draws
 
 ### AI Generation
+
 - Uses external AI services for combination generation
 - Incorporates advanced pattern recognition
 - (Implementation pending external API integration)
 
 ### Qi Men Dun Jia
+
 - Traditional Chinese metaphysical approach
 - Based on auspicious timing and elements
 - (Implementation pending algorithm refinement)
@@ -163,11 +177,13 @@ The application uses the following main tables:
 ### Cloudflare Workers (via OpenNextJS)
 
 1. **Build the application**
+
    ```bash
    npm run build
    ```
 
 2. **Deploy to Cloudflare**
+
    ```bash
    npm run deploy
    ```
@@ -179,7 +195,7 @@ The application uses the following main tables:
 Set the following environment variables in your deployment platform:
 
 - `SUPABASE_URL`
-- `SUPABASE_ANON_KEY` 
+- `SUPABASE_ANON_KEY`
 - `MASTER_API_KEY`
 
 ## Usage
