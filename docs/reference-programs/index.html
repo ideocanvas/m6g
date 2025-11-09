@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ labels[lang]["title"] }}</title>
+    <link rel="icon" type="image/x-icon" href="/public/assets/images/mark6/logo.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="/public/assets/fontawesome/js/brands.js"></script>
+    <script defer src="/public/assets/fontawesome/js/solid.js"></script>
+    <script defer src="/public/assets/fontawesome/js/fontawesome.js"></script>
+    {% include "function.html" %}
+    <style>
+        body {
+            background-image: url('/public/assets/images/mark6/background.png');
+            background-size: cover;
+            background-position: center;
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; background: transparent; }
+        ::-webkit-scrollbar-thumb { border-radius: 20px; background-color: #c5c5c58d; }
+        ::-webkit-scrollbar-track { border-radius: 20px; }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .selection-panel::after {
+            content: "";
+            background-image: url('/public/assets/images/mark6/background.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.1;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: -1;
+            border-radius: 0.5rem;
+        }
+        .num-button span {
+            color: #1f2937;
+        }
+        .num-button.selected span {
+            color: #000;
+        }
+        /* Added for modern select styling */
+        .custom-select-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        .custom-select-wrapper select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            padding-right: 2.5rem; /* Make space for the icon */
+        }
+        .custom-select-wrapper .select-arrow {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-2 sm:p-4">
+    <div class="flex flex-col md:flex-row w-full max-w-7xl h-full md:h-[90vh] gap-4">
+
+    <!-- Left Panel: Generator Controls -->
+    <div class="panel p-4 sm:p-6 rounded-lg shadow-2xl flex flex-col w-full md:w-1/2 selection-panel overflow-y-auto">
+        <div class="flex-shrink-0">
+            <div class="flex items-center justify-center mb-4 relative">
+                <img src="/public/assets/images/mark6/logo.svg" alt="Mark Six Logo" class="mr-4 rounded-full" width="50" height="50">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">{{ labels[lang]["title"] }}</h1>
+            </div>
+
+            <div class="generation-method mb-4 p-2 text-center">
+                <div class="inline-flex bg-gray-200/50 rounded-lg p-1 space-x-2">
+                    <label class="flex items-center space-x-2 cursor-pointer px-4 py-1 rounded-md transition-all">
+                        <input type="radio" name="generationMethod" value="v2" class="form-radio text-blue-600" checked>
+                        <span>(V2)</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer px-4 py-1 rounded-md transition-all">
+                        <input type="radio" name="generationMethod" value="v1" class="form-radio text-blue-600">
+                        <span>(V1)</span>
+                    </label>
+                </div>
+            </div>
+
+            <p class="text-md text-center text-gray-700 mb-2">{{ labels[lang]["select_your_numbers"] }}</p>
+        </div>
+
+        <div class="number-selection flex-grow mb-4">
+            <div class="grid grid-cols-7 gap-1 justify-items-center">
+                <!-- Number balls will be generated here -->
+            </div>
+        </div>
+
+        <div class="flex-shrink-0 space-y-4">
+             <p class="text-md text-center font-semibold text-gray-700">{{ labels[lang]["selected_balls"] }} <span id="selectedBallsCount">0</span></p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+                <label for="combinationCount" class="text-md text-gray-700 whitespace-nowrap">{{ labels[lang]["number_of_combinations"] }}</label>
+                <div class="custom-select-wrapper w-full sm:w-auto">
+                    <select id="combinationCount" class="border rounded px-3 py-2 bg-white/50 w-full h-10">
+                        <option value="4 x 1">4 x 1</option> <option value="4 x 2">4 x 2</option>
+                        <option value="8 x 1">8 x 1</option> <option value="8 x 2">8 x 2</option>
+                        <option value="12 x 1">12 x 1</option> <option value="12 x 2">12 x 2</option>
+                        <option value="17 x 1">17 x 1</option> <option value="17 x 2">17 x 2</option>
+                    </select>
+                    <div class="select-arrow text-gray-600"><i class="fa-solid fa-chevron-down"></i></div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+                <label for="luckyNumber" class="text-md text-gray-700">{{ labels[lang]["lucky_number"] }}</label>
+                <div class="custom-select-wrapper w-full sm:w-auto">
+                    <select id="luckyNumber" class="border rounded px-3 py-2 bg-white/50 w-full h-10">
+                        <option value="">{{ labels[lang]["select_lucky_number"] }}</option>
+                    </select>
+                    <div class="select-arrow text-gray-600"><i class="fa-solid fa-chevron-down"></i></div>
+                </div>
+            </div>
+            
+            <div class="flex justify-center items-center gap-2">
+                 <div class="custom-select-wrapper flex-grow">
+                    <select id="suggestionMethod" class="border rounded px-3 py-2 bg-white/50 text-sm h-10 w-full">
+                        <option value="hot_follow_on">{{ labels[lang]["suggest_hot_follow_on"] }}</option>
+                        <option value="hot_frequency">{{ labels[lang]["suggest_most_frequent"] }}</option>
+                        <option value="cold_frequency">{{ labels[lang]["suggest_least_frequent"] }}</option>
+                    </select>
+                    <div class="select-arrow text-gray-600"><i class="fa-solid fa-chevron-down"></i></div>
+                 </div>
+                <button onclick="suggestNumbers()" class="bg-green-500 text-white w-10 h-10 text-lg rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex-shrink-0"><i class="fa-solid fa-lightbulb"></i></button>
+            </div>
+
+            <div class="flex justify-center items-center gap-2 flex-wrap">
+                <button onclick="selectAllNumbers()" class="bg-yellow-500 text-white w-10 h-10 text-lg rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"><i class="fa-solid fa-check-double"></i></button>
+                <button onclick="clearSelection()" class="bg-red-500 text-white w-10 h-10 text-lg rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"><i class="fa-solid fa-broom"></i></button>
+                <button id="generateButton" onclick="generateCombinations()" class="bg-blue-500 text-white px-4 py-2 h-10 text-lg rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-grow max-w-xs flex items-center justify-center gap-2">
+                    <span id="loadingIcon" class="hidden"><i class="animate-spin fa fa-circle-notch"></i></span>
+                    <span>{{ labels[lang]["generate"] }}</span>
+                </button>
+                <button id="generateAIPromptButton" onclick="generateAIPrompt('standard')" class="bg-purple-500 text-white w-28 h-10 text-lg rounded-lg hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex-shrink-0 flex items-center justify-center gap-2">
+                    <span id="aiPromptLoadingIcon" class="hidden"><i class="animate-spin fa fa-circle-notch"></i></span>
+                    <span class="button-content flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-calculator"></i>
+                        <span class="font-bold text-base">AI Gen</span>
+                    </span>
+                </button>
+                <button id="generateAIQiMenPromptButton" onclick="generateAIPrompt('qimen')" class="bg-teal-500 text-white w-28 h-10 text-lg rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 flex-shrink-0 flex items-center justify-center gap-2">
+                    <span id="aiQiMenPromptLoadingIcon" class="hidden"><i class="animate-spin fa fa-circle-notch"></i></span>
+                    <span class="button-content flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-yin-yang"></i>
+                        <span class="font-bold text-base">AI Pro</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel: Results and Records -->
+    <div class="panel p-4 sm:p-6 rounded-lg shadow-2xl w-full md:w-1/2 flex flex-col overflow-y-auto">
+        <div class="flex-grow" id="combinations-wrapper">
+             <div class="combinations my-5" id="combinations"></div>
+        </div>
+
+        <div class="flex-shrink-0 space-y-4 pt-4 border-t">
+             <div class="flex items-center justify-center gap-2">
+                <div class="custom-select-wrapper flex-grow">
+                    <select id="savedGenerations" onchange="loadGeneration(this.value)" class="border rounded px-3 py-2 w-full h-10 bg-white/50">
+                        <option value="">{{ labels[lang]["select_saved_record"] }}</option>
+                    </select>
+                    <div class="select-arrow text-gray-600"><i class="fa-solid fa-chevron-down"></i></div>
+                </div>
+                <button onclick="shareGeneration()" class="bg-blue-500 text-white w-10 h-10 text-lg rounded-lg hover:bg-blue-600 focus:outline-none flex-shrink-0"><i class="fa-solid fa-copy"></i></button>
+                <button onclick="deleteGeneration(document.getElementById('savedGenerations').value)" class="bg-red-500 text-white w-10 h-10 text-lg rounded-lg hover:bg-red-600 focus:outline-none flex-shrink-0"><i class="fa-solid fa-trash"></i></button>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-2">
+                <label for="drawDate" class="text-md text-gray-700 whitespace-nowrap">{{ labels[lang]["select_draw_date"] }}</label>
+                <input type="date" id="drawDate" class="border rounded px-3 py-2 flex-grow bg-white/50 w-full h-10">
+            </div>
+
+            <button onclick="checkDrawNumber()" class="w-full bg-indigo-500 text-white px-4 py-2 text-md rounded-lg hover:bg-indigo-600 focus:outline-none h-10">{{ labels[lang]["draw_number_check"] }}</button>
+
+            <h2 class="text-lg font-bold text-center text-gray-800 pt-2">{{ labels[lang]["draw_result"] }}</h2>
+            <div id="drawBalls" class="flex flex-wrap gap-2 justify-center items-center min-h-[40px]">{{ labels[lang]["select_a_date_to_see_result"] }}</div>
+        </div>
+    </div>
+
+    <script>
+        const numberSelectionContainer = document.querySelector('.number-selection div');
+        for (let i = 1; i <= 49; i++) {
+            const button = document.createElement('button');
+            button.className = 'num-button w-8 h-8 sm:w-8 sm:h-8 rounded-full m-1 font-bold relative text-gray-700 transition-transform hover:scale-110';
+            button.addEventListener('click', () => toggleNumberSelection(button, i));
+            
+            const img = document.createElement('img');
+            img.src = getBallImage(i);
+            img.className = 'absolute inset-0 w-full h-full object-cover';
+            button.appendChild(img);
+
+            const numberText = document.createElement('span');
+            numberText.textContent = i;
+            numberText.className = 'absolute inset-0 flex items-center justify-center font-bold text-[10px] sm:text-xs';
+            button.appendChild(numberText);
+
+            numberSelectionContainer.appendChild(button);
+        }
+
+        let selectedNumbers = [];
+        let selectedStyles = ['ring-4', 'ring-orange-500', 'selected'];
+        
+        function toggleNumberSelection(button, number) {
+            if (selectedNumbers.includes(number)) {
+                selectedNumbers = selectedNumbers.filter(n => n !== number);
+                button.classList.remove(...selectedStyles);
+            } else {
+                selectedNumbers.push(number);
+                button.classList.add(...selectedStyles);
+            }
+            document.getElementById('selectedBallsCount').textContent = selectedNumbers.length;
+            updateLuckyNumberDropdown();
+        }
+
+        function getBallImage(num) {
+            const red = [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46];
+            const blue = [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48];
+            const green = [5, 6, 11, 16, 17, 21, 22, 27, 28, 32, 33, 38, 39, 43, 44, 49];
+            if (red.includes(num)) return '/public/assets/images/mark6/red-ball.svg';
+            if (blue.includes(num)) return '/public/assets/images/mark6/blue-ball.svg';
+            return '/public/assets/images/mark6/green-ball.svg';
+        }
+
+        function createBall(num, size = '32px') {
+            const ball = document.createElement('div');
+            ball.className = 'relative flex items-center justify-center flex-shrink-0';
+            ball.style.width = size;
+            ball.style.height = size;
+
+            const img = document.createElement('img');
+            img.src = getBallImage(num);
+            img.className = 'absolute inset-0 w-full h-full object-cover';
+            ball.appendChild(img);
+
+            const numberText = document.createElement('span');
+            numberText.textContent = num;
+            numberText.className = 'relative text-black font-bold z-10 text-sm';
+            ball.appendChild(numberText);
+            return ball;
+        }
+
+        function renderSavedGenerationsDropdown() {
+            const savedGenerationsSelect = document.getElementById('savedGenerations');
+            const generations = JSON.parse(localStorage.getItem('generations')) || {};
+            savedGenerationsSelect.innerHTML = '<option value="">{{ labels[lang]["select_saved_record"] }}</option>';
+            for (const id in generations) {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = id;
+                savedGenerationsSelect.appendChild(option);
+            }
+        }
+
+        function updateLuckyNumberDropdown() {
+            const luckyNumberSelect = document.getElementById('luckyNumber');
+            const currentLucky = luckyNumberSelect.value;
+            luckyNumberSelect.innerHTML = '<option value="">{{ labels[lang]["select_lucky_number"] }}</option>';
+            const sortedNumbers = [...selectedNumbers].sort((a, b) => a - b);
+            sortedNumbers.forEach(num => {
+                const option = document.createElement('option');
+                option.value = num;
+                option.textContent = num;
+                luckyNumberSelect.appendChild(option);
+            });
+            if (sortedNumbers.includes(parseInt(currentLucky))) {
+                luckyNumberSelect.value = currentLucky;
+            }
+        }
+
+        function scrollToElement(selector) {
+            const element = document.querySelector(selector);
+            if (element) element.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearCombinations() {
+            document.getElementById('combinations').innerHTML = '';
+        }
+
+        function renderCombinations(generationId, generatedCombinations) {
+            const combinationsContainer = document.getElementById('combinations');
+            combinationsContainer.innerHTML = '';
+            const generationIdDiv = document.createElement('div');
+            generationIdDiv.className = 'text-md font-bold mb-4 text-center';
+            generationIdDiv.textContent = `{{ labels[lang]["record_id"] }}: ${generationId}`;
+            combinationsContainer.appendChild(generationIdDiv);
+            let isDouble = false;
+            generatedCombinations.forEach((combination, index) => {
+                const combinationDiv = document.createElement('div');
+                combinationDiv.className = 'flex justify-center items-center space-x-2 mb-2';
+                if (!isDouble && combination.length === 7) isDouble = true;
+                combination.forEach((num, idx) => {
+                    if (isDouble && idx === 5) {
+                        const plusSign = document.createElement('span');
+                        plusSign.textContent = '+';
+                        plusSign.className = 'text-xl font-bold mx-1';
+                        combinationDiv.appendChild(plusSign);
+                    }
+                    combinationDiv.appendChild(createBall(num));
+                });
+                const rowNumberDiv = document.createElement('div');
+                rowNumberDiv.className = 'text-sm font-bold mr-2 w-6 text-right';
+                rowNumberDiv.textContent = `${index + 1})`;
+                combinationDiv.insertBefore(rowNumberDiv, combinationDiv.firstChild);
+                combinationsContainer.appendChild(combinationDiv);
+            });
+            document.getElementById('savedGenerations').value = generationId;
+            scrollToElement("#combinations-wrapper");
+        }
+
+        function padNumber(num) { return num.toString().padStart(2, '0'); }
+
+        function generateLocalTimezoneId() {
+            const now = new Date();
+            return `${now.getFullYear()}${padNumber(now.getMonth() + 1)}${padNumber(now.getDate())}${padNumber(now.getHours())}${padNumber(now.getMinutes())}${padNumber(now.getSeconds())}`;
+        }
+
+        async function generateCombinations() {
+            const generateButton = document.getElementById('generateButton');
+            const loadingIcon = document.getElementById('loadingIcon');
+            generateButton.disabled = true;
+            loadingIcon.classList.remove('hidden');
+            try {
+                const generationId = generateLocalTimezoneId();
+                const { combinationCount, isDouble } = parseSelectedOptions();
+                const luckyNumber = parseInt(document.getElementById('luckyNumber').value, 10);
+                const generationMethod = document.querySelector('input[name="generationMethod"]:checked').value;
+                if (generationMethod === 'v1') {
+                    const requiredCount = getRequiredCount();
+                    if (selectedNumbers.length < requiredCount) {
+                        alert(replacePlaceholders(`{{ labels[lang]["please_select_numbers"] }}`, {count:requiredCount }));
+                        return;
+                    }
+                }
+                if (!luckyNumber) {
+                    alert(`{{ labels[lang]["please_select_lucky_number"] }}`);
+                    return;
+                }
+                const params = { action: generationMethod === 'v1' ? 'generate_combination_v1' : 'generate_combination_v2', generationId, combinationCount, selectedNumbers, luckyNumber, isDouble };
+                const generatedCombinations = await StimUtils.getDataPolicyData(false, 'MarkSixAPI', 'en', params, true);
+                if (generatedCombinations && generatedCombinations.length > 0) {
+                    saveGeneration(generationId, generatedCombinations);
+                    renderCombinations(generationId, generatedCombinations);
+                } else {
+                    alert(`{{ labels[lang]["generation_failed"] }}`);
+                }
+            } finally {
+                generateButton.disabled = false;
+                loadingIcon.classList.add('hidden');
+            }
+        }
+
+        async function generateAIPrompt(type) {
+            let button, loadingIcon, contentSpan, action;
+            const lang = '{{ lang }}';
+
+            if (type === 'standard') {
+                button = document.getElementById('generateAIPromptButton');
+                loadingIcon = document.getElementById('aiPromptLoadingIcon');
+                action = 'generate_llm_prompt';
+            } else if (type === 'qimen') {
+                button = document.getElementById('generateAIQiMenPromptButton');
+                loadingIcon = document.getElementById('aiQiMenPromptLoadingIcon');
+                action = 'generate_qimen_llm_prompt';
+            } else {
+                return;
+            }
+            
+            contentSpan = button.querySelector('.button-content');
+
+            button.disabled = true;
+            loadingIcon.classList.remove('hidden');
+            contentSpan.classList.add('hidden');
+
+            try {
+                const { combinationCount, isDouble } = parseSelectedOptions();
+                const luckyNumber = parseInt(document.getElementById('luckyNumber').value, 10);
+                
+                const params = { 
+                    action, 
+                    combinationCount, 
+                    selectedNumbers, 
+                    luckyNumber, 
+                    isDouble,
+                    language: lang 
+                };
+
+                const promptText = await StimUtils.getDataPolicyData(false, 'MarkSixAPI', 'en', params, true);
+                await navigator.clipboard.writeText(promptText);
+                alert('{{ labels[lang]["ai_prompt_copied"] }}');
+            } catch (error) {
+                console.error('AI Prompt Generation Failed:', error);
+                alert('{{ labels[lang]["ai_prompt_failed"] }}');
+            } finally {
+                button.disabled = false;
+                loadingIcon.classList.add('hidden');
+                contentSpan.classList.remove('hidden');
+            }
+        }
+        
+        async function suggestNumbers() {
+            clearSelection();
+            const suggestionMethod = document.getElementById('suggestionMethod').value;
+            const requiredCount = getRequiredCount();
+            let params = { requiredCount };
+            if (suggestionMethod === 'hot_follow_on') {
+                params.action = 'get_hot_follow_on';
+            } else if (suggestionMethod === 'hot_frequency') {
+                params.action = 'get_historical_frequency';
+                params.drawCount = 100;
+                params.analysisType = 'hot';
+            } else if (suggestionMethod === 'cold_frequency') {
+                params.action = 'get_historical_frequency';
+                params.drawCount = 100;
+                params.analysisType = 'cold';
+            }
+            try {
+                const suggestedNumbersResult = await StimUtils.getDataPolicyData(false, 'MarkSixAPI', 'en', params, true);
+                const numbersToSelect = suggestedNumbersResult.map(item => typeof item === 'object' ? item.number : item);
+                numbersToSelect.slice(0, requiredCount).forEach(num => {
+                    const button = document.querySelectorAll('.num-button')[num-1];
+                    if (button && !selectedNumbers.includes(num)) {
+                        toggleNumberSelection(button, num);
+                    }
+                });
+            } catch(e) {
+                alert(`{{ labels[lang]["suggestion_failed"] }}`);
+            }
+        }
+
+        function saveGeneration(generationId, generatedCombinations) {
+            const generations = JSON.parse(localStorage.getItem('generations')) || {};
+            generations[generationId] = generatedCombinations;
+            localStorage.setItem('generations', JSON.stringify(generations));
+            renderSavedGenerationsDropdown();
+        }
+
+        function loadGeneration(generationId) {
+            clearCombinations();
+            const generations = JSON.parse(localStorage.getItem('generations'));
+            if (generations && generations[generationId]) {
+                const selectedNumbersInRecord = new Set(generations[generationId].flat());
+                clearSelection();
+                selectedNumbersInRecord.forEach(num => {
+                    const button = document.querySelectorAll('.num-button')[num-1];
+                    if (button && !selectedNumbers.includes(num)) {
+                        toggleNumberSelection(button, num);
+                    }
+                });
+                const combinationCountSelect = document.getElementById('combinationCount');
+                const numberOfRows = generations[generationId].length;
+                const numbersInEachRow = generations[generationId][0].length;
+                const suffix = numbersInEachRow >= 7 ? "x 2" : "x 1";
+                const optionValue = `${numberOfRows} ${suffix}`;
+                combinationCountSelect.value = optionValue;
+                const drawDate = generationId.substring(0, 8);
+                document.getElementById('drawDate').value = `${drawDate.substring(0, 4)}-${drawDate.substring(4, 6)}-${drawDate.substring(6, 8)}`;
+                renderCombinations(generationId, generations[generationId]);
+                return true;
+            }
+            return false;
+        }
+
+        function shareGeneration() {
+            const generationId = document.getElementById('savedGenerations').value;
+            if (!generationId) {
+                alert('{{ labels[lang]["please_select_record"] }}');
+                return;
+            }
+            const generations = JSON.parse(localStorage.getItem('generations'));
+            const shareData = { generationId: generationId, combinations: generations[generationId] };
+            const base64Data = btoa(JSON.stringify(shareData));
+            const currentUrl = new URL(window.location.href);
+            currentUrl.search = '';
+            currentUrl.searchParams.set('data', base64Data);
+            navigator.clipboard.writeText(currentUrl.toString()).then(() => alert('{{ labels[lang]["share_link_copied"] }}')).catch(() => alert('{{ labels[lang]["copy_failed"] }}'));
+        }
+
+        function deleteGeneration(generationId) {
+            if (!generationId) return;
+            const generations = JSON.parse(localStorage.getItem('generations'));
+            delete generations[generationId];
+            localStorage.setItem('generations', JSON.stringify(generations));
+            renderSavedGenerationsDropdown();
+            const savedGenerationsSelect = document.getElementById('savedGenerations');
+            if (savedGenerationsSelect.options.length > 1) {
+                savedGenerationsSelect.selectedIndex = 1;
+                loadGeneration(savedGenerationsSelect.value);
+            } else {
+                clearCombinations();
+            }
+        }
+
+        function parseSelectedOptions() {
+            const selectedOption = document.getElementById('combinationCount').value;
+            const combinationCount = parseInt(selectedOption);
+            const isDouble = selectedOption.includes('x 2');
+            return { combinationCount, isDouble };
+        }
+
+        function getRequiredCount() {
+            const { combinationCount, isDouble } = parseSelectedOptions();
+            return 6 + Math.ceil(combinationCount / 2);
+        }
+
+        function selectAllNumbers() {
+            for (let i = 1; i <= 49; i++) {
+                const button = document.querySelectorAll('.num-button')[i-1];
+                if (button && !selectedNumbers.includes(i)) toggleNumberSelection(button, i);
+            }
+        }
+
+        function clearSelection() {
+            [...selectedNumbers].forEach(num => {
+                const button = document.querySelectorAll('.num-button')[num-1];
+                if (button) toggleNumberSelection(button, num);
+            });
+        }
+        
+        function convertDateFormat(dateString) {
+            const [year, month, day] = dateString.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        async function checkDrawNumber() {
+            const savedGenerationsSelect = document.getElementById('savedGenerations');
+            const generationId = savedGenerationsSelect.value;
+
+            if (!generationId) {
+                alert('{{ labels[lang]["please_select_record"] }}');
+                return;
+            }
+            const selectedDate = document.getElementById('drawDate').value;
+            if (!selectedDate) {
+                alert('{{ labels[lang]["please_select_date"] }}');
+                return;
+            }
+            const params = { action: 'get_result', dateText: convertDateFormat(selectedDate) };
+            const records = await StimUtils.getDataPolicyData(false, 'MarkSixAPI', 'en', params, true);
+            if (records?.length === 0) {
+                alert(replacePlaceholders(`{{ labels[lang]["no_draw_on_date"] }}`, {date: selectedDate}));
+                return;
+            }
+            const drawResults = records[0].no.split("+").map(no => parseInt(no, 10));
+            const sno = parseInt(records[0].sno, 10);
+
+            // First, highlight the numbers in the user's generated combinations
+            document.querySelectorAll('.combinations .flex > div[style*="width"]').forEach(ballDiv => {
+                // Reset previous highlights
+                ballDiv.classList.remove('ring-4', 'ring-orange-500', 'ring-gray-400', 'rounded-full');
+                const numTextElement = ballDiv.querySelector('.relative.text-black');
+                if (numTextElement) {
+                    const num = parseInt(numTextElement.textContent, 10);
+                    if (drawResults.includes(num)) {
+                        ballDiv.classList.add('ring-4', 'ring-orange-500', 'rounded-full');
+                    } else if (sno === num) {
+                        ballDiv.classList.add('ring-4', 'ring-gray-400', 'rounded-full');
+                    }
+                }
+            });
+
+            // Second, render the draw result and highlight matching numbers there
+            const drawBallsContainer = document.getElementById('drawBalls');
+            drawBallsContainer.innerHTML = ''; // Clear previous result
+
+            // Get the user's numbers from the selected generation for comparison
+            const generations = JSON.parse(localStorage.getItem('generations'));
+            const savedCombination = generations[generationId];
+            const savedNumbers = new Set(savedCombination.flat()); // Use a Set for fast lookups
+
+            // Render the main winning numbers and highlight if they match the user's numbers
+            drawResults.forEach(num => {
+                const ball = createBall(num);
+                if (savedNumbers.has(num)) {
+                    ball.classList.add('ring-4', 'ring-orange-500', 'rounded-full');
+                }
+                drawBallsContainer.appendChild(ball);
+            });
+
+            // Add the "+" separator
+            const plusSign = document.createElement('span');
+            plusSign.textContent = '+';
+            plusSign.className = 'text-xl font-bold mx-1';
+            drawBallsContainer.appendChild(plusSign);
+
+            // Render the special number and highlight if it matches the user's numbers
+            const specialBall = createBall(sno);
+            if (savedNumbers.has(sno)) {
+                specialBall.classList.add('ring-4', 'ring-orange-500', 'rounded-full');
+            }
+            drawBallsContainer.appendChild(specialBall);
+        }
+
+        function replacePlaceholders(template, params) { return template.replace(/{(\w+)}/g, (match, key) => params[key] !== undefined ? params[key] : match); }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderSavedGenerationsDropdown();
+            const { handleGuest } = window.modules.function;
+            await handleGuest();
+            const drawDateInput = document.getElementById('drawDate');
+            drawDateInput.value = new Date().toISOString().split('T')[0];
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataParam = urlParams.get('data');
+            const generationId = urlParams.get('generationId');
+
+            if (dataParam) {
+                try {
+                    const data = JSON.parse(atob(dataParam));
+                    if (!loadGeneration(data.generationId)) {
+                        saveGeneration(data.generationId, data.combinations);
+                        loadGeneration(data.generationId) || renderCombinations(data.generationId, data.combinations);
+                    }
+                } catch (error) { console.error('Error parsing data query parameter:', error); }
+            } else if (generationId) {
+                const params = { action: 'load_generated_results', generationId};
+                const combinations = await StimUtils.getDataPolicyData(false, 'MarkSixAPI', 'en', params, true);
+                if (combinations?.length > 0) {
+                    saveGeneration(generationId, combinations);
+                    loadGeneration(generationId) || renderCombinations(generationId, combinations);
+                }
+            }
+        });
+    </script>
+    <script type="module" src="/public/jquery.min.js"></script>
+    <script type="module" src="/public/modules.js?{{ "/public/modules.js" | hashPath }}"></script>
+</body>
+</html>尸
