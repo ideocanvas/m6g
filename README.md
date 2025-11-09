@@ -1,229 +1,156 @@
-# Mark Six Lottery Generator
+# Mark Six Lottery Application
 
-A modern web application for generating Hong Kong Mark Six lottery combinations with statistical analysis and AI-powered suggestions.
+A modern Mark Six lottery application built with Next.js, TypeScript, and Supabase. This application provides historical draw results, number generation algorithms, and statistical analysis for the Hong Kong Mark Six lottery.
 
 ## Features
 
-- **Multiple Generation Algorithms**: V1 (Statistical), V2 (Follow-on Patterns), AI, and Qi Men Dun Jia methods
-- **Multi-language Support**: English and Traditional Chinese (繁體中文)
-- **Real-time Data**: Fetch latest draw results from HKJC API
-- **Smart Suggestions**: Hot/cold number analysis and follow-on pattern detection
-- **Modern UI**: Responsive design with Tailwind CSS
-- **Data Persistence**: Supabase database for storing results and combinations
-- **Share & Export**: Copy combinations and share generation sessions
+- **Historical Draw Results**: View and search all historical Mark Six draw results
+- **Number Generation**: Multiple generation algorithms (V1, V2, AI, Qimen)
+- **Statistical Analysis**: Hot/cold number analysis and follow-on patterns
+- **Multi-language Support**: English and Traditional Chinese
+- **RESTful API**: Protected API for fetching latest HKJC data
+- **Modern UI**: Responsive design with dark/light mode support
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 15.4.6, React 19.1.0, TypeScript
 - **Backend**: Next.js API Routes
-- **Database**: Supabase (PostgreSQL)
-- **Deployment**: Cloudflare Workers via OpenNextJS
-- **Authentication**: Master API Key for HKJC data fetching
+- **Database**: PostgreSQL with Prisma ORM
+- **Styling**: Tailwind CSS
+- **Deployment**: Cloudflare Pages with OpenNextJS
 
-## Project Structure
-
-```bash
-m6g/
-├── src/
-│   ├── app/                    # Next.js app router
-│   │   ├── api/               # API routes
-│   │   │   ├── draws/         # Draw results endpoints
-│   │   │   ├── combinations/  # Combination generation
-│   │   │   └── analysis/      # Statistical analysis
-│   │   ├── page.tsx           # Main page
-│   │   └── layout.tsx         # App layout
-│   ├── components/            # React components
-│   │   ├── MarkSixGenerator.tsx
-│   │   ├── NumberSelection.tsx
-│   │   ├── NumberBall.tsx
-│   │   └── ResultsPanel.tsx
-│   ├── lib/                   # Utility libraries
-│   │   ├── generation-algorithms.ts
-│   │   └── i18n.ts
-│   └── types/                 # TypeScript definitions
-│       └── mark6.ts
-├── scripts/                   # Utility scripts
-│   ├── convert-data.ts       # Data migration
-│   └── migrate-database.ts   # Database setup
-├── supabase/                 # Database schema
-│   └── schema.sql
-└── docs/                     # Documentation
-    └── reference-programs/   # Original implementation reference
-```
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- Supabase account
-- HKJC API access (for fetching draw results)
+- pnpm package manager
+- PostgreSQL database (Prisma Data Platform, Railway, Supabase, Neon, etc.)
 
 ### Installation
 
-1. **Clone the repository**
-
+1. **Clone and install dependencies:**
    ```bash
-   git clone <repository-url>
-   cd m6g
+   pnpm install
    ```
 
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-
+2. **Set up environment variables:**
    ```bash
    cp .env.example .env.local
    ```
-
-   Edit `.env.local` with your configuration:
-
-   ```env
-   # Supabase Configuration
-   SUPABASE_URL=your_supabase_project_url
-   SUPABASE_ANON_KEY=your_supabase_anon_key
-   SUPABASE_SERVICE_KEY=your_supabase_service_key
-
-   # Application Configuration
+   Fill in your database credentials:
+   ```
+   DATABASE_URL=your_postgresql_connection_string
    MASTER_API_KEY=your_master_api_key_here
-   NODE_ENV=development
    ```
 
-4. **Set up the database**
-
-   Option A: Run migration script (requires service role key):
-
+3. **Set up Prisma and database:**
    ```bash
-   npm run migrate:db
+   pnpm tsx scripts/setup-prisma.ts
    ```
+   Follow the instructions to:
+   - Generate Prisma client
+   - Push database schema
+   - Migrate existing data
 
-   Option B: Manual setup:
-   - Create a new Supabase project
-   - Run the SQL from `supabase/schema.sql` in the SQL editor
-   - Configure Row Level Security (RLS) policies
-
-5. **Convert existing data** (optional)
-
+4. **Generate Prisma client and set up database:**
    ```bash
-   npm run convert:data
+   pnpm prisma generate
+   pnpm prisma db push
+   pnpm tsx scripts/convert-data-prisma.ts
    ```
 
-6. **Run the development server**
+**Note**: The application uses a shared Prisma client from `src/lib/prisma.ts` that includes Accelerate extension for better performance.
 
+5. **Start development server:**
    ```bash
-   npm run dev
+   ./scripts/dev.sh
    ```
-
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## API Endpoints
-
-### Draw Results
-
-- `GET /api/draws` - Get draw results with optional filtering
-- `POST /api/draws` - Fetch latest results from HKJC API (requires MASTER_API_KEY)
-
-### Combinations
-
-- `GET /api/combinations` - Get generated combinations
-- `POST /api/combinations` - Generate new combinations
-
-### Analysis
-
-- `GET /api/analysis` - Get number frequency and pattern analysis
-
-## Generation Algorithms
-
-### V1 (Statistical)
-
-- Analyzes historical frequency data
-- Uses statistical patterns from past 1 year of draws
-- Optimizes combinations based on score calculation
-
-### V2 (Follow-on Patterns)
-
-- Analyzes relationships between consecutive draws
-- Uses weighted probabilities based on historical patterns
-- Focuses on numbers that frequently follow recent draws
-
-### AI Generation
-
-- Uses external AI services for combination generation
-- Incorporates advanced pattern recognition
-- (Implementation pending external API integration)
-
-### Qi Men Dun Jia
-
-- Traditional Chinese metaphysical approach
-- Based on auspicious timing and elements
-- (Implementation pending algorithm refinement)
 
 ## Database Schema
 
-The application uses the following main tables:
+The application uses Prisma with the following main models:
 
-- `mark6_results` - Historical draw results from HKJC
-- `mark6_generated_combinations` - User-generated number combinations
-- `mark6_number_frequency` - Frequency analysis data
-- `mark6_follow_on_patterns` - Statistical relationship data
-- `mark6_api_logs` - API access logs for monitoring
+- `MarkSixResult`: Historical draw results from HKJC
+- `MarkSixGeneratedCombination`: User-generated number combinations
+- `MarkSixNumberFrequency`: Number frequency analysis data
+- `MarkSixFollowOnPattern`: Statistical relationships between draws
+- `MarkSixApiLog`: API access logs
+
+See `prisma/schema.prisma` for the complete schema definition.
+
+## API Endpoints
+
+### Public Endpoints
+
+- `GET /api/draws` - Get historical draw results
+- `GET /api/analysis` - Get statistical analysis
+- `POST /api/combinations` - Generate number combinations
+
+### Protected Endpoints (require MASTER_API_KEY)
+
+- `POST /api/draws` - Fetch latest draw results from HKJC API
+- `GET /api/draws/latest` - Get the latest draw result
+
+## Number Generation Algorithms
+
+- **V1**: Basic random number generation
+- **V2**: Enhanced algorithm with statistical weighting
+- **AI**: Machine learning-based prediction
+- **Qimen**: Traditional Chinese numerology method
+
+## Development
+
+### Scripts
+
+- `./scripts/dev.sh` - Start development server
+- `./scripts/eslint.sh` - Run ESLint checks
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+
+### Data Migration
+
+The application includes scripts to convert existing data from the legacy Parse platform format:
+
+- `scripts/convert-data-prisma.ts` - Convert and migrate JSON data to PostgreSQL
+- `scripts/setup-prisma.ts` - Prisma setup instructions
 
 ## Deployment
 
-### Cloudflare Workers (via OpenNextJS)
+### Cloudflare Pages
 
-1. **Build the application**
+The application is configured for deployment on Cloudflare Pages:
 
-   ```bash
-   npm run build
-   ```
-
-2. **Deploy to Cloudflare**
-
-   ```bash
-   npm run deploy
-   ```
-
-3. **Configure environment variables in Cloudflare dashboard**
+1. Connect your GitHub repository to Cloudflare Pages
+2. Set environment variables in Cloudflare dashboard
+3. Deploy automatically on git push
 
 ### Environment Variables for Production
 
-Set the following environment variables in your deployment platform:
-
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
+- `DATABASE_URL`
 - `MASTER_API_KEY`
 
-## Usage
+## Security
 
-1. **Select Numbers**: Choose your preferred numbers or use suggestions
-2. **Set Parameters**: Select combination count, lucky number, and generation method
-3. **Generate**: Click "Generate" to create combinations
-4. **Check Results**: Select a draw date to check against historical results
-5. **Share**: Copy combinations or share generation sessions
-
-## Data Sources
-
-- **HKJC GraphQL API**: For fetching latest draw results
-- **Historical Data**: Converted from existing JSON datasets
-- **Statistical Analysis**: Based on historical draw patterns
+- Master API key required for HKJC data fetching
+- Input validation and sanitization
+- Database access controlled through Prisma
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests if applicable
+4. Run `./scripts/eslint.sh` to ensure code quality
 5. Submit a pull request
 
 ## License
 
-This project is for educational and personal use. Please ensure compliance with local gambling laws and regulations.
+MIT License - see LICENSE file for details
 
-## Disclaimer
+## Support
 
-This application is for entertainment and educational purposes only. It does not guarantee winning results and should not be used as financial advice. Always gamble responsibly.
+For issues and questions:
+1. Check the existing documentation
+2. Review the database schema in `prisma/schema.prisma`
+3. Check API documentation in the source code

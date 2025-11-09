@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase';
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/analysis - Get number frequency and pattern analysis
@@ -46,27 +46,25 @@ export async function GET(request: NextRequest) {
  */
 async function getHotNumbers(drawCount: number): Promise<Array<{ number: number; frequency: number }>> {
   // Get recent draws
-  const supabase = getSupabaseClient();
-  const { data: recentDraws, error } = await supabase
-    .from('mark6_results')
-    .select('winning_numbers, special_number')
-    .order('draw_date', { ascending: false })
-    .limit(drawCount);
-
-  if (error) {
-    throw new Error(`Failed to fetch recent draws: ${error.message}`);
-  }
+  const recentDraws = await prisma.markSixResult.findMany({
+    select: {
+      winningNumbers: true,
+      specialNumber: true
+    },
+    orderBy: { drawDate: 'desc' },
+    take: drawCount
+  });
 
   // Count frequency of each number
   const frequencyMap = new Map<number, number>();
   
   for (const draw of recentDraws) {
     // Count winning numbers
-    for (const num of draw.winning_numbers) {
+    for (const num of draw.winningNumbers) {
       frequencyMap.set(num, (frequencyMap.get(num) || 0) + 1);
     }
     // Count special number
-    frequencyMap.set(draw.special_number, (frequencyMap.get(draw.special_number) || 0) + 1);
+    frequencyMap.set(draw.specialNumber, (frequencyMap.get(draw.specialNumber) || 0) + 1);
   }
 
   // Convert to array and sort by frequency (descending)
@@ -111,31 +109,37 @@ async function getFollowOnNumbers(daysOfHistory: number): Promise<Array<{ number
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysOfHistory);
 
-  const supabase = getSupabaseClient();
-  const { data: historicalDraws, error } = await supabase
-    .from('mark6_results')
-    .select('draw_date, winning_numbers, special_number')
-    .gte('draw_date', cutoffDate.toISOString())
-    .order('draw_date', { ascending: true });
-
-  if (error) {
-    throw new Error(`Failed to fetch historical draws: ${error.message}`);
-  }
+  const historicalDraws = await prisma.markSixResult.findMany({
+    select: {
+      drawDate: true,
+      winningNumbers: true,
+      specialNumber: true
+    },
+    where: {
+      drawDate: {
+        gte: cutoffDate
+      }
+    },
+    orderBy: { drawDate: 'asc' }
+  });
 
   // Get the most recent draw
-  const { data: recentDraws } = await supabase
-    .from('mark6_results')
-    .select('winning_numbers, special_number')
-    .order('draw_date', { ascending: false })
-    .limit(1);
+  const recentDraws = await prisma.markSixResult.findMany({
+    select: {
+      winningNumbers: true,
+      specialNumber: true
+    },
+    orderBy: { drawDate: 'desc' },
+    take: 1
+  });
 
   if (!recentDraws || recentDraws.length === 0) {
     throw new Error('No recent draw found');
   }
 
   const lastDrawNumbers = [
-    ...recentDraws[0].winning_numbers,
-    recentDraws[0].special_number
+    ...recentDraws[0].winningNumbers,
+    recentDraws[0].specialNumber
   ];
 
   // Analyze follow-on patterns
@@ -146,13 +150,13 @@ async function getFollowOnNumbers(daysOfHistory: number): Promise<Array<{ number
     const nextDraw = historicalDraws[i + 1];
 
     const currentNumbers = [
-      ...currentDraw.winning_numbers,
-      currentDraw.special_number
+      ...currentDraw.winningNumbers,
+      currentDraw.specialNumber
     ];
 
     const nextNumbers = [
-      ...nextDraw.winning_numbers,
-      nextDraw.special_number
+      ...nextDraw.winningNumbers,
+      nextDraw.specialNumber
     ];
 
     for (const currentNum of currentNumbers) {

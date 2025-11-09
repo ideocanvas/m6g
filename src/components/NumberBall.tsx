@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { NumberBallProps } from '@/types/mark6';
@@ -13,9 +14,9 @@ export default function NumberBall({
     const redNumbers = [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46];
     const blueNumbers = [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48];
     
-    if (redNumbers.includes(num)) return 'from-red-400 to-red-600';
-    if (blueNumbers.includes(num)) return 'from-blue-400 to-blue-600';
-    return 'from-green-400 to-green-600';
+    if (redNumbers.includes(num)) return 'red';
+    if (blueNumbers.includes(num)) return 'blue';
+    return 'green';
   };
 
   const getSizeClasses = () => {
@@ -49,25 +50,49 @@ export default function NumberBall({
     }
   };
 
+  const ballColor = getBallColor(number);
+
   return (
     <button
       onClick={handleClick}
       className={`
         relative rounded-full font-bold text-white shadow-md
-        bg-linear-to-br ${getBallColor(number)}
         transition-all duration-200 hover:scale-110 hover:shadow-lg
         ${getSizeClasses()}
         ${selected ? 'ring-4 ring-yellow-400 transform scale-110 shadow-lg' : ''}
         ${getHighlightClasses()}
-        flex items-center justify-center
+        flex items-center justify-center overflow-hidden
       `}
     >
-      <span className="relative z-10 drop-shadow-sm">
+      {/* SVG Background using img tags */}
+      <div className="absolute inset-0">
+        {ballColor === 'red' && (
+          <img
+            src="/mark6/red-ball.svg"
+            alt="Red ball"
+            className="w-full h-full object-cover"
+          />
+        )}
+        {ballColor === 'blue' && (
+          <img
+            src="/mark6/blue-ball.svg"
+            alt="Blue ball"
+            className="w-full h-full object-cover"
+          />
+        )}
+        {ballColor === 'green' && (
+          <img
+            src="/mark6/green-ball.svg"
+            alt="Green ball"
+            className="w-full h-full object-cover"
+          />
+        )}
+      </div>
+      
+      {/* Number overlay */}
+      <span className="relative z-10 drop-shadow-sm font-bold text-black">
         {number}
       </span>
-      
-      {/* Inner shine effect */}
-      <div className="absolute inset-0 rounded-full bg-linear-to-br from-white/20 to-transparent opacity-50" />
     </button>
   );
 }

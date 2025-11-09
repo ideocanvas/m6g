@@ -4,7 +4,11 @@
  * Converts existing JSON data from Parse platform format to Supabase schema
  */
 
-import { createClient } from '@supabase/supabase-js';
+// Load environment variables first
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
+import { getSupabaseClient } from '../src/lib/supabase';
 import fs from 'fs';
 import path from 'path';
 
@@ -46,10 +50,8 @@ interface ConvertedCombination {
   created_at: string;
 }
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Initialize Supabase client using the shared utility
+const supabase = getSupabaseClient();
 
 /**
  * Parse the number string from existing data format
@@ -156,7 +158,22 @@ function formatDateText(isoDate: string): string {
 function loadJsonData(filePath: string): ParseRecord[] {
   try {
     const data = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    
+    // Handle the wrapper object structure
+    if (typeof parsed === 'object' && parsed !== null) {
+      // Check for the expected keys
+      if ('UfxCdaMarksixResults' in parsed) {
+        return parsed.UfxCdaMarksixResults;
+      } else if ('UfxCdaMarksixRecords' in parsed) {
+        return parsed.UfxCdaMarksixRecords;
+      } else {
+        // If no wrapper key, assume it's already an array
+        return Array.isArray(parsed) ? parsed : [];
+      }
+    }
+    
+    return [];
   } catch (error) {
     console.error(`Error loading JSON data from ${filePath}:`, error);
     return [];
@@ -258,12 +275,6 @@ async function convertData() {
 
 // Run the conversion if this script is executed directly
 if (require.main === module) {
-  // Check for required environment variables
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
-    console.error('Error: SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables are required');
-    process.exit(1);
-  }
-
   convertData().catch(error => {
     console.error('Data conversion failed:', error);
     process.exit(1);

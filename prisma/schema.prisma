@@ -1,0 +1,96 @@
+// Prisma Schema for Mark Six Lottery Application
+// This schema supports both historical draw results and generated number combinations
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Mark Six Draw Results Table
+// Stores historical draw results from HKJC
+model MarkSixResult {
+  id                String   @id @default(cuid())
+  drawId            String   @unique // HKJC draw ID (e.g., "23/125")
+  drawDate          DateTime
+  dateText          String   // Formatted date (DD/MM/YYYY)
+  winningNumbers    Int[]    // Array of 6 winning numbers
+  specialNumber     Int
+  snowballCode      String?  // Snowball code if applicable
+  snowballNameEn    String?  // Snowball name in English
+  snowballNameCh    String?  // Snowball name in Chinese
+  totalInvestment   BigInt?  // Total investment amount
+  jackpot           BigInt?  // Jackpot amount
+  unitBet           Int?     // Unit bet amount
+  estimatedPrize    BigInt?  // Estimated prize amount
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("mark6_results")
+}
+
+// Mark Six Generated Combinations Table
+// Stores user-generated number combinations
+model MarkSixGeneratedCombination {
+  id                 String   @id @default(cuid())
+  generationId       String   // Unique generation session ID
+  sequenceNumber     Int      // Sequence within generation
+  combinationNumbers Int[]    // Array of numbers (6 or 7)
+  isDouble           Boolean  @default(false) // Whether this is a double combination (7 numbers)
+  generationMethod   String   // 'v1', 'v2', 'ai', 'qimen'
+  selectedNumbers    Int[]    // User selected numbers used in generation
+  luckyNumber        Int?     // Lucky number used in generation
+  combinationCount   Int?     // Total combinations in this generation
+  generatedAt        DateTime @default(now())
+  createdAt          DateTime @default(now())
+
+  @@map("mark6_generated_combinations")
+}
+
+// Number Frequency Analysis Table
+// Stores frequency analysis data for optimization
+model MarkSixNumberFrequency {
+  id              String   @id @default(cuid())
+  analysisDate    DateTime
+  analysisType    String   // 'hot', 'cold', 'follow_on'
+  daysOfHistory   Int      // Number of days analyzed
+  number          Int
+  frequency       Int      // Count of appearances
+  createdAt       DateTime @default(now())
+
+  @@map("mark6_number_frequency")
+}
+
+// Follow-on Patterns Table
+// Stores statistical relationships between consecutive draws
+model MarkSixFollowOnPattern {
+  id              String   @id @default(cuid())
+  analysisDate    DateTime
+  daysOfHistory   Int
+  triggerNumber   Int      // Number from previous draw
+  followNumber    Int      // Number that follows in next draw
+  frequency       Int      // Count of this pattern
+  createdAt       DateTime @default(now())
+
+  @@map("mark6_follow_on_patterns")
+}
+
+// API Access Log Table
+// Logs API access for monitoring and security
+model MarkSixApiLog {
+  id              String   @id @default(cuid())
+  endpoint        String
+  method          String
+  statusCode      Int?
+  userAgent       String?
+  ipAddress       String?
+  requestBody     Json?
+  responseBody    Json?
+  responseTimeMs  Int?
+  createdAt       DateTime @default(now())
+
+  @@map("mark6_api_logs")
+}

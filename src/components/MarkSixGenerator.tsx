@@ -1,12 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import NumberSelection from './NumberSelection';
 import ResultsPanel from './ResultsPanel';
 import { Combination, DrawResult } from '@/types/mark6';
 import { labels, LanguageCode, saveLanguagePreference } from '@/lib/i18n';
 
-export default function MarkSixGenerator() {
+interface MarkSixGeneratorProps {
+  language: LanguageCode;
+}
+
+export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
+  const router = useRouter();
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [luckyNumber, setLuckyNumber] = useState<number | null>(null);
   const [combinations, setCombinations] = useState<Combination[]>([]);
@@ -15,7 +21,6 @@ export default function MarkSixGenerator() {
   const [generationMethod, setGenerationMethod] = useState<'v1' | 'v2'>('v2');
   const [combinationCount, setCombinationCount] = useState<number>(4);
   const [isDouble, setIsDouble] = useState<boolean>(false);
-  const [language, setLanguage] = useState<LanguageCode>('en');
 
   // Generate a unique generation ID
   const generateGenerationId = () => {
@@ -46,10 +51,10 @@ export default function MarkSixGenerator() {
     setSelectedNumbers(allNumbers);
   };
 
-  // Generate combinations
+  // Handle language change with URL navigation
   const handleLanguageChange = (newLanguage: LanguageCode) => {
-    setLanguage(newLanguage);
     saveLanguagePreference(newLanguage);
+    router.push(`/${newLanguage}`);
   };
 
   const generateCombinations = async () => {

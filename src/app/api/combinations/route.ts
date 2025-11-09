@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase';
+import { prisma } from '@/lib/prisma';
 
 interface GenerateCombinationRequest {
   generationId: string;
@@ -23,23 +23,11 @@ export async function GET(request: NextRequest) {
     const generationId = searchParams.get('generationId');
     const limit = parseInt(searchParams.get('limit') || '50');
 
-    const supabase = getSupabaseClient();
-    let query = supabase
-      .from('mark6_generated_combinations')
-      .select('*')
-      .order('generated_at', { ascending: false })
-      .limit(limit);
-
-    if (generationId) {
-      query = query.eq('generation_id', generationId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching combinations:', error);
-      return NextResponse.json({ error: 'Failed to fetch combinations' }, { status: 500 });
-    }
+    const data = await prisma.markSixGeneratedCombination.findMany({
+      where: generationId ? { generationId } : {},
+      orderBy: { generatedAt: 'desc' },
+      take: limit
+    });
 
     return NextResponse.json({ data });
   } catch (error) {
@@ -117,33 +105,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Save combinations to database
-    const supabase = getSupabaseClient();
     const savedCombinations = [];
     for (let i = 0; i < combinations.length; i++) {
       const combination = combinations[i];
       
       const combinationData = {
-        generation_id: generationId,
-        sequence_number: i + 1,
-        combination_numbers: combination,
-        is_double: isDouble,
-        generation_method: generationMethod,
-        selected_numbers: selectedNumbers,
-        lucky_number: luckyNumber,
-        combination_count: combinationCount,
-        generated_at: new Date().toISOString(),
-        created_at: new Date().toISOString()
+        generationId: generationId,
+        sequenceNumber: i + 1,
+        combinationNumbers: combination,
+        isDouble: isDouble,
+        generationMethod: generationMethod,
+        selectedNumbers: selectedNumbers,
+        luckyNumber: luckyNumber,
+        combinationCount: combinationCount,
+        generatedAt: new Date(),
+        createdAt: new Date()
       };
 
-      const { data, error } = await supabase
-        .from('mark6_generated_combinations')
-        .insert(combinationData)
-        .select();
-
-      if (error) {
+      try {
+        const data = await prisma.markSixGeneratedCombination.create({
+          data: combinationData
+        });
+        savedCombinations.push(data);
+      } catch (error) {
         console.error(`Error saving combination ${i + 1}:`, error);
-      } else {
-        savedCombinations.push(data[0]);
       }
     }
 

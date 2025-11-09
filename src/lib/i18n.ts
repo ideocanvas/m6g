@@ -139,6 +139,16 @@ export function saveLanguagePreference(lang: LanguageCode) {
 export function getSavedLanguagePreference(): LanguageCode {
   if (typeof window === 'undefined') return 'en';
   
+  // Check URL first for language
+  const pathname = window.location.pathname;
+  if (pathname.startsWith('/zh-TW')) {
+    return 'zh-TW';
+  }
+  if (pathname.startsWith('/en')) {
+    return 'en';
+  }
+  
+  // Fall back to localStorage
   const saved = localStorage.getItem('mark6-language');
   if (saved === 'en' || saved === 'zh-TW') {
     return saved;

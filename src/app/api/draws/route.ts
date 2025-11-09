@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase';
+import { prisma } from '@/lib/prisma';
 
 // Master API key validation
 function validateMasterApiKey(request: NextRequest): boolean {
@@ -107,26 +107,21 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    const supabase = getSupabaseClient();
-    let query = supabase
-      .from('mark6_results')
-      .select('*')
-      .order('draw_date', { ascending: false })
-      .limit(limit);
-
-    if (startDate) {
-      query = query.gte('draw_date', startDate);
-    }
-    if (endDate) {
-      query = query.lte('draw_date', endDate);
+    let whereClause = {};
+    if (startDate || endDate) {
+      whereClause = {
+        drawDate: {
+          ...(startDate && { gte: new Date(startDate) }),
+          ...(endDate && { lte: new Date(endDate) })
+        }
+      };
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching draw results:', error);
-      return NextResponse.json({ error: 'Failed to fetch draw results' }, { status: 500 });
-    }
+    const data = await prisma.markSixResult.findMany({
+      where: whereClause,
+      orderBy: { drawDate: 'desc' },
+      take: limit
+    });
 
     return NextResponse.json({ data });
   } catch (error) {
@@ -193,12 +188,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if draw already exists
-      const supabase = getSupabaseClient();
-      const { data: existingDraw } = await supabase
-        .from('mark6_results')
-        .select('draw_id')
-        .eq('draw_id', draw.id)
-        .single();
+      const existingDraw = await prisma.markSixResult.findUnique({
+        where: { drawId: draw.id }
+      });
 
       if (existingDraw) {
         console.log(`Draw ${draw.id} already exists, skipping`);
@@ -210,33 +202,31 @@ export async function POST(request: NextRequest) {
       const dateText = `${drawDate.getDate().toString().padStart(2, '0')}/${(drawDate.getMonth() + 1).toString().padStart(2, '0')}/${drawDate.getFullYear()}`;
 
       const drawData = {
-        draw_id: draw.id,
-        draw_date: draw.drawDate,
-        date_text: dateText,
-        winning_numbers: draw.drawResult.drawnNo,
-        special_number: draw.drawResult.xDrawnNo,
-        snowball_code: draw.snowballCode,
-        snowball_name_en: draw.snowballName_en,
-        snowball_name_ch: draw.snowballName_ch,
-        total_investment: draw.lotteryPool?.totalInvestment,
-        jackpot: draw.lotteryPool?.jackpot,
-        unit_bet: draw.lotteryPool?.unitBet,
-        estimated_prize: draw.lotteryPool?.estimatedPrize,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        drawId: draw.id,
+        drawDate: new Date(draw.drawDate),
+        dateText: dateText,
+        winningNumbers: draw.drawResult.drawnNo,
+        specialNumber: draw.drawResult.xDrawnNo,
+        snowballCode: draw.snowballCode,
+        snowballNameEn: draw.snowballName_en,
+        snowballNameCh: draw.snowballName_ch,
+        totalInvestment: draw.lotteryPool?.totalInvestment ? BigInt(draw.lotteryPool.totalInvestment) : null,
+        jackpot: draw.lotteryPool?.jackpot ? BigInt(draw.lotteryPool.jackpot) : null,
+        unitBet: draw.lotteryPool?.unitBet,
+        estimatedPrize: draw.lotteryPool?.estimatedPrize ? BigInt(draw.lotteryPool.estimatedPrize) : null,
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
 
       // Insert into database
-      const { data, error } = await supabase
-        .from('mark6_results')
-        .insert(drawData)
-        .select();
-
-      if (error) {
-        console.error(`Error saving draw ${draw.id}:`, error);
-      } else {
-        savedResults.push(data[0]);
+      try {
+        const data = await prisma.markSixResult.create({
+          data: drawData
+        });
+        savedResults.push(data);
         console.log(`Saved draw ${draw.id}`);
+      } catch (error) {
+        console.error(`Error saving draw ${draw.id}:`, error);
       }
     }
 
