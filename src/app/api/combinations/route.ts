@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import {
+  generateV1Combinations,
+  generateV2Combinations,
+  generateAICombinations,
+  generateQiMenCombinations
+} from '@/lib/generation-algorithms';
 
 interface GenerateCombinationRequest {
   generationId: string;
@@ -145,83 +151,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Placeholder implementations for the generation algorithms
-// These will be implemented in the next step
-
-async function generateV1Combinations(
-  combinationCount: number,
-  selectedNumbers: number[],
-  luckyNumber: number,
-  isDouble: boolean
-): Promise<number[][]> {
-  // TODO: Implement V1 generation algorithm from reference code
-  return generateRandomCombinations(combinationCount, selectedNumbers, luckyNumber, isDouble);
-}
-
-async function generateV2Combinations(
-  combinationCount: number,
-  selectedNumbers: number[],
-  luckyNumber: number,
-  isDouble: boolean
-): Promise<number[][]> {
-  // TODO: Implement V2 generation algorithm from reference code
-  return generateRandomCombinations(combinationCount, selectedNumbers, luckyNumber, isDouble);
-}
-
-async function generateAICombinations(
-  combinationCount: number,
-  selectedNumbers: number[],
-  luckyNumber: number,
-  isDouble: boolean
-): Promise<number[][]> {
-  // TODO: Implement AI generation algorithm from reference code
-  return generateRandomCombinations(combinationCount, selectedNumbers, luckyNumber, isDouble);
-}
-
-async function generateQiMenCombinations(
-  combinationCount: number,
-  selectedNumbers: number[],
-  luckyNumber: number,
-  isDouble: boolean
-): Promise<number[][]> {
-  // TODO: Implement Qi Men Dun Jia generation algorithm from reference code
-  return generateRandomCombinations(combinationCount, selectedNumbers, luckyNumber, isDouble);
-}
-
-// Temporary fallback function
-function generateRandomCombinations(
-  combinationCount: number,
-  selectedNumbers: number[],
-  luckyNumber: number,
-  isDouble: boolean
-): number[][] {
-  const combinations: number[][] = [];
-  const combinationLength = isDouble ? 7 : 6;
-
-  for (let i = 0; i < combinationCount; i++) {
-    const combination = new Set<number>();
-    
-    // Always include lucky number
-    combination.add(luckyNumber);
-
-    // Include selected numbers if provided
-    for (const num of selectedNumbers) {
-      if (combination.size < combinationLength) {
-        combination.add(num);
-      }
-    }
-
-    // Fill remaining numbers randomly
-    while (combination.size < combinationLength) {
-      const randomNum = Math.floor(Math.random() * 49) + 1;
-      combination.add(randomNum);
-    }
-
-    const sortedCombination = Array.from(combination).sort((a, b) => a - b);
-    combinations.push(sortedCombination);
-  }
-
-  return combinations;
 }

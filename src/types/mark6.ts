@@ -2,34 +2,34 @@
 
 export interface Combination {
   id: string;
-  generation_id: string;
-  sequence_number: number;
-  combination_numbers: number[];
-  is_double: boolean;
-  generation_method: string;
-  selected_numbers: number[];
-  lucky_number: number;
-  combination_count: number;
-  generated_at: string;
-  created_at: string;
+  generationId: string;
+  sequenceNumber: number;
+  combinationNumbers: number[];
+  isDouble: boolean;
+  generationMethod: string;
+  selectedNumbers: number[];
+  luckyNumber: number;
+  combinationCount: number;
+  generatedAt: string;
+  createdAt: string;
 }
 
 export interface DrawResult {
   id: string;
-  draw_id: string;
-  draw_date: string;
-  date_text: string;
-  winning_numbers: number[];
-  special_number: number;
-  snowball_code?: string;
-  snowball_name_en?: string;
-  snowball_name_ch?: string;
-  total_investment?: number;
+  drawId: string;
+  drawDate: string;
+  dateText: string;
+  winningNumbers: number[];
+  specialNumber: number;
+  snowballCode?: string;
+  snowballNameEn?: string;
+  snowballNameCh?: string;
+  totalInvestment?: number;
   jackpot?: number;
-  unit_bet?: number;
-  estimated_prize?: number;
-  created_at: string;
-  updated_at: string;
+  unitBet?: number;
+  estimatedPrize?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface NumberFrequency {

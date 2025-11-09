@@ -18,18 +18,18 @@ export async function GET(request: NextRequest) {
     let result;
 
     switch (analysisType) {
-      case 'hot':
-        result = await getHotNumbers(drawCount);
-        break;
-      case 'cold':
-        result = await getColdNumbers(drawCount);
-        break;
       case 'follow_on':
         result = await getFollowOnNumbers(daysOfHistory);
         break;
+      case 'hot':
+        result = await getHistoricalFrequency(drawCount, 'hot');
+        break;
+      case 'cold':
+        result = await getHistoricalFrequency(drawCount, 'cold');
+        break;
       default:
         return NextResponse.json(
-          { error: 'Invalid analysis type. Use: hot, cold, or follow_on' },
+          { error: 'Invalid analysis type. Use: follow_on, hot, or cold' },
           { status: 400 }
         );
     }
@@ -41,65 +41,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * Get hot numbers (most frequent in recent draws)
- */
-async function getHotNumbers(drawCount: number): Promise<Array<{ number: number; frequency: number }>> {
-  // Get recent draws
-  const recentDraws = await prisma.markSixResult.findMany({
-    select: {
-      winningNumbers: true,
-      specialNumber: true
-    },
-    orderBy: { drawDate: 'desc' },
-    take: drawCount
-  });
 
-  // Count frequency of each number
-  const frequencyMap = new Map<number, number>();
-  
-  for (const draw of recentDraws) {
-    // Count winning numbers
-    for (const num of draw.winningNumbers) {
-      frequencyMap.set(num, (frequencyMap.get(num) || 0) + 1);
-    }
-    // Count special number
-    frequencyMap.set(draw.specialNumber, (frequencyMap.get(draw.specialNumber) || 0) + 1);
-  }
-
-  // Convert to array and sort by frequency (descending)
-  const frequencyArray = Array.from(frequencyMap.entries())
-    .map(([number, frequency]) => ({ number, frequency }))
-    .sort((a, b) => b.frequency - a.frequency);
-
-  return frequencyArray;
-}
-
-/**
- * Get cold numbers (least frequent in recent draws)
- */
-async function getColdNumbers(drawCount: number): Promise<Array<{ number: number; frequency: number }>> {
-  const hotNumbers = await getHotNumbers(drawCount);
-  
-  // For cold numbers, we want the least frequent
-  // First, ensure all numbers 1-49 are included with frequency 0 if missing
-  const allNumbers = new Map<number, number>();
-  for (let i = 1; i <= 49; i++) {
-    allNumbers.set(i, 0);
-  }
-  
-  // Update with actual frequencies
-  for (const { number, frequency } of hotNumbers) {
-    allNumbers.set(number, frequency);
-  }
-  
-  // Convert to array and sort by frequency (ascending)
-  const coldNumbers = Array.from(allNumbers.entries())
-    .map(([number, frequency]) => ({ number, frequency }))
-    .sort((a, b) => a.frequency - b.frequency);
-
-  return coldNumbers;
-}
 
 /**
  * Get follow-on numbers based on historical patterns
@@ -189,4 +131,48 @@ async function getFollowOnNumbers(daysOfHistory: number): Promise<Array<{ number
     .sort((a, b) => b.weight - a.weight);
 
   return followOnNumbers;
+}
+
+/**
+ * Get historical frequency analysis
+ */
+async function getHistoricalFrequency(drawCount: number, analysisType: 'hot' | 'cold'): Promise<Array<{ number: number; frequency: number }>> {
+  // Get recent draws
+  const recentDraws = await prisma.markSixResult.findMany({
+    select: {
+      winningNumbers: true,
+      specialNumber: true
+    },
+    orderBy: { drawDate: 'desc' },
+    take: drawCount
+  });
+
+  // Count frequency of each number
+  const frequencyMap = new Map<number, number>();
+  
+  // Initialize all numbers 1-49 with frequency 0
+  for (let i = 1; i <= 49; i++) {
+    frequencyMap.set(i, 0);
+  }
+  
+  for (const draw of recentDraws) {
+    // Count winning numbers
+    for (const num of draw.winningNumbers) {
+      frequencyMap.set(num, (frequencyMap.get(num) || 0) + 1);
+    }
+    // Count special number
+    frequencyMap.set(draw.specialNumber, (frequencyMap.get(draw.specialNumber) || 0) + 1);
+  }
+
+  // Convert to array and sort based on analysis type
+  const frequencyArray = Array.from(frequencyMap.entries())
+    .map(([number, frequency]) => ({ number, frequency }));
+
+  if (analysisType === 'hot') {
+    frequencyArray.sort((a, b) => b.frequency - a.frequency);
+  } else {
+    frequencyArray.sort((a, b) => a.frequency - b.frequency);
+  }
+
+  return frequencyArray;
 }

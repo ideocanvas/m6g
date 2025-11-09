@@ -24,18 +24,18 @@ export default function NumberSelection({
 }: NumberSelectionProps) {
   const combinationOptions = [
     { value: 4, label: '4 x 1' },
-    { value: 8, label: '8 x 1' },
-    { value: 12, label: '12 x 1' },
-    { value: 17, label: '17 x 1' },
     { value: 4, label: '4 x 2', double: true },
+    { value: 8, label: '8 x 1' },
     { value: 8, label: '8 x 2', double: true },
+    { value: 12, label: '12 x 1' },
     { value: 12, label: '12 x 2', double: true },
+    { value: 17, label: '17 x 1' },
     { value: 17, label: '17 x 2', double: true },
   ];
 
   const suggestionOptions = [
-    { value: 'hot', label: labels[language].suggest_hot_follow_on },
-    { value: 'follow_on', label: labels[language].suggest_most_frequent },
+    { value: 'follow_on', label: labels[language].suggest_hot_follow_on },
+    { value: 'hot', label: labels[language].suggest_most_frequent },
     { value: 'cold', label: labels[language].suggest_least_frequent },
   ];
 
@@ -152,10 +152,9 @@ export default function NumberSelection({
         {/* Suggestions */}
         <div className="flex gap-2">
           <select
-            onChange={(e) => onSuggestNumbers(e.target.value as 'hot' | 'cold' | 'follow_on')}
+            id="suggestionMethod"
             className="flex-1 border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
           >
-            <option value="">{labels[language].suggest_numbers}</option>
             {suggestionOptions.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -163,9 +162,15 @@ export default function NumberSelection({
             ))}
           </select>
           <button
-            onClick={() => onSuggestNumbers('hot')}
+            onClick={() => {
+              const selectElement = document.getElementById('suggestionMethod');
+              if (selectElement && selectElement instanceof HTMLSelectElement) {
+                const suggestionMethod = selectElement.value as 'hot' | 'cold' | 'follow_on';
+                onSuggestNumbers(suggestionMethod);
+              }
+            }}
             className="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition-colors"
-            title="Get hot number suggestions"
+            title="Get number suggestions"
           >
             💡
           </button>

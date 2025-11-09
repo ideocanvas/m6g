@@ -47,6 +47,7 @@ const SCORE_MAP: Record<number, number> = {
 /**
  * V1 Generation Algorithm - Statistical Analysis
  * Based on historical frequency and pattern analysis
+ * Aligned with reference implementation from MarkSizAPI.js
  */
 export async function generateV1Combinations(
   combinationCount: number,
@@ -55,14 +56,15 @@ export async function generateV1Combinations(
   isDouble: boolean
 ): Promise<number[][]> {
   try {
-    // Get past results for analysis (1 year of data)
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    // Get past results for analysis (369 days of data as per reference)
+    const daysOfHistory = 369;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOfHistory);
     
     const { data: pastResults, error } = await supabase
       .from('mark6_results')
       .select('winning_numbers, special_number')
-      .gte('draw_date', oneYearAgo.toISOString())
+      .gte('draw_date', cutoffDate.toISOString())
       .order('draw_date', { ascending: true });
 
     if (error) {
@@ -76,19 +78,23 @@ export async function generateV1Combinations(
 
     let bestCandidate: number[][] | null = null;
     let highestScore = -1;
+    let scoreDistribution: Record<number, number> | null = null;
+    let numberDistribution: Array<{ number: number; frequency: number }> | null = null;
     const allCandidates: Array<{
       candidate: number[][];
       totalScore: number;
       frequenceFactor: number;
+      subScoreMapping: Record<number, number>;
+      subNumberDistribution: Array<{ number: number; frequency: number }>;
     }> = [];
     let totalFrequenceFactor = 0;
     const frequenceFactors: number[] = [];
 
-    // Generate candidates and calculate frequenceFactor
+    // Generate candidates and calculate frequenceFactor (963 iterations as per reference)
     for (let i = 0; i < 963; i++) {
       const candidate = await generateNumbersImpl(combinationCount, selectedNumbers, luckyNumber, isDouble);
-      const { totalScore, frequenceFactor } = checkScore(candidate, parsedResults);
-      allCandidates.push({ candidate, totalScore, frequenceFactor });
+      const { totalScore, subScoreMapping, subNumberDistribution, frequenceFactor } = checkScore(candidate, parsedResults);
+      allCandidates.push({ candidate, totalScore, frequenceFactor, subScoreMapping, subNumberDistribution });
       totalFrequenceFactor += frequenceFactor;
       frequenceFactors.push(frequenceFactor);
     }
@@ -103,12 +109,16 @@ export async function generateV1Combinations(
     const filteredCandidates = allCandidates.filter(c => c.frequenceFactor > threshold);
 
     // Determine the best candidate based on totalScore
-    for (const { candidate, totalScore } of filteredCandidates) {
+    for (const { candidate, totalScore, subScoreMapping, subNumberDistribution } of filteredCandidates) {
       if (totalScore > highestScore) {
         highestScore = totalScore;
         bestCandidate = candidate;
+        scoreDistribution = subScoreMapping;
+        numberDistribution = subNumberDistribution;
       }
     }
+
+    console.log("V1 Generation - Best candidate:", { bestCandidate, highestScore, scoreDistribution, numberDistribution });
 
     return bestCandidate || await generateNumbersImpl(combinationCount, selectedNumbers, luckyNumber, isDouble);
   } catch (error) {
@@ -121,6 +131,7 @@ export async function generateV1Combinations(
 /**
  * V2 Generation Algorithm - Follow-on Pattern Analysis
  * Based on statistical relationships between consecutive draws
+ * Aligned with reference implementation from MarkSizAPI.js
  */
 export async function generateV2Combinations(
   combinationCount: number,
@@ -130,12 +141,28 @@ export async function generateV2Combinations(
   daysOfHistory: number = 1095
 ): Promise<number[][]> {
   try {
+    const DEBUG = false; // Set to true for detailed logging as in reference
+
+    if (DEBUG) {
+      console.log("--- Starting generateV2Combinations ---");
+      console.log(`Combinations to Generate: ${combinationCount}`);
+      console.log(`User Selected Numbers: [${selectedNumbers.join(', ')}]`);
+      console.log(`Lucky Number: ${luckyNumber}`);
+      console.log(`Is Double: ${isDouble}`);
+      console.log(`Analyzing History: ${daysOfHistory} days`);
+      console.log("------------------------------------");
+    }
+
     const followOnPatterns = await analyzeFollowOnPatterns(daysOfHistory);
 
-    // Get the last draw
+    // Get the last draw (7 days ago as per reference)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
     const { data: lastDrawList } = await supabase
       .from('mark6_results')
       .select('winning_numbers, special_number')
+      .gte('draw_date', sevenDaysAgo.toISOString())
       .order('draw_date', { ascending: false })
       .limit(1);
 
@@ -145,6 +172,8 @@ export async function generateV2Combinations(
 
     const lastDraw = lastDrawList[0];
     const lastDrawNumbers = [...lastDraw.winning_numbers, lastDraw.special_number];
+    
+    if (DEBUG) console.log(`[DEBUG] Using last draw numbers as trigger: [${lastDrawNumbers.join(', ')}]`);
 
     // Create weighted pool based on follow-on patterns
     const weightedPool = new Map<number, number>();
@@ -156,6 +185,13 @@ export async function generateV2Combinations(
         });
       }
     }
+    
+    if (DEBUG) {
+      const sortedWeightedPool = Array.from(weightedPool.entries()).sort((a, b) => b[1] - a[1]);
+      console.log(`[DEBUG] Top 15 numbers in weighted pool (Number => Weight):`);
+      console.log(sortedWeightedPool.slice(0, 15).map(([num, weight]) => `${num} => ${weight}`).join(' | '));
+      console.log("------------------------------------");
+    }
 
     // Create selection array with weighted probabilities
     const selectionArray: number[] = [];
@@ -165,7 +201,7 @@ export async function generateV2Combinations(
       }
     });
 
-    // Ensure we have at least all numbers 1-49 in the pool
+    // Ensure we have at least all numbers 1-49 in the pool (as per reference)
     if (selectionArray.length < 49) {
       for (let i = 1; i <= 49; i++) {
         if (!weightedPool.has(i)) {
@@ -178,10 +214,12 @@ export async function generateV2Combinations(
     const combinationLength = isDouble ? 7 : 6;
 
     for (let i = 0; i < combinationCount; i++) {
+      if (DEBUG) console.log(`\n--- Generating Combination #${i + 1} ---`);
       const combination = new Set<number>();
 
       // Always include lucky number
       combination.add(luckyNumber);
+      if (DEBUG) console.log(`[DEBUG] Added Lucky Number: ${luckyNumber}`);
 
       // Include selected numbers if provided
       const userSelectionPool = selectedNumbers.filter(n => n !== luckyNumber);
@@ -191,6 +229,7 @@ export async function generateV2Combinations(
       while (combination.size < combinationLength && userPickIndex < userSelectionPool.length) {
         const selectedNum = userSelectionPool[userPickIndex];
         combination.add(selectedNum);
+        if (DEBUG) console.log(`[DEBUG] Added from User Selection: ${selectedNum}`);
         userPickIndex++;
       }
 
@@ -202,22 +241,33 @@ export async function generateV2Combinations(
           const pickedNumber = selectionArray[randomIndex];
           if (!combination.has(pickedNumber)) {
             combination.add(pickedNumber);
+            if (DEBUG) console.log(`[DEBUG] Added from Weighted Pool: ${pickedNumber}`);
           }
         } else {
           const randomNum = Math.floor(Math.random() * 49) + 1;
           if (!combination.has(randomNum)) {
             combination.add(randomNum);
+            if (DEBUG) console.log(`[DEBUG] Added from Fallback Random: ${randomNum}`);
           }
         }
         attempts++;
       }
-
+      
       const finalCombination = Array.from(combination);
       finalCombination.sort((a, b) => a - b);
       
       if (finalCombination.length === combinationLength) {
         generatedCombinations.push(finalCombination);
+        if (DEBUG) console.log(`[SUCCESS] Final Combination #${i + 1}: [${finalCombination.join(', ')}]`);
+      } else {
+        if (DEBUG) console.warn(`[FAIL] Could not generate a valid combination of length ${combinationLength}. Current size: ${finalCombination.length}. Skipping.`);
       }
+    }
+
+    if (DEBUG) {
+      console.log("\n--- Generation Complete ---");
+      console.log(`Total combinations generated: ${generatedCombinations.length}`);
+      console.log("---------------------------\n");
     }
 
     return generatedCombinations;

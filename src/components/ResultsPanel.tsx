@@ -27,8 +27,22 @@ export default function ResultsPanel({
   };
 
   const renderCombination = (combination: Combination, index: number) => {
-    const numbers = combination.combination_numbers;
-    const isDouble = combination.is_double;
+    const numbers = combination.combinationNumbers;
+    const isDouble = combination.isDouble;
+
+    // Handle case where numbers might be undefined or null
+    if (!numbers || !Array.isArray(numbers)) {
+      return (
+        <div key={combination.id} className="flex items-center gap-2 mb-3">
+          <span className="text-sm font-medium text-gray-600 w-6 text-right">
+            {index + 1})
+          </span>
+          <div className="text-red-500 text-sm">
+            Invalid combination data
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div key={combination.id} className="flex items-center gap-2 mb-3">
@@ -40,9 +54,9 @@ export default function ResultsPanel({
             let highlight: 'winning' | 'special' | 'none' = 'none';
             
             if (drawResults) {
-              if (drawResults.winning_numbers.includes(number)) {
+              if (drawResults.winningNumbers.includes(number)) {
                 highlight = 'winning';
-              } else if (drawResults.special_number === number) {
+              } else if (drawResults.specialNumber === number) {
                 highlight = 'special';
               }
             }
@@ -81,10 +95,10 @@ export default function ResultsPanel({
     return (
       <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
         <h3 className="text-lg font-semibold text-gray-800 mb-3">
-          {labels[language].draw_results} - {drawResults.date_text}
+          {labels[language].draw_results} - {drawResults.dateText}
         </h3>
         <div className="flex items-center gap-2 mb-4">
-          {drawResults.winning_numbers.map((number, index) => (
+          {drawResults.winningNumbers?.map((number: number, index: number) => (
             <NumberBall
               key={`winning-${index}`}
               number={number}
@@ -94,7 +108,7 @@ export default function ResultsPanel({
           ))}
           <span className="mx-2 text-xl font-bold text-gray-600">+</span>
           <NumberBall
-            number={drawResults.special_number}
+            number={drawResults.specialNumber}
             size="md"
             highlight="special"
           />
@@ -185,8 +199,8 @@ export default function ResultsPanel({
             <button
               onClick={() => {
                 const text = combinations
-                  .map((comb, index) => 
-                    `${index + 1}. ${comb.combination_numbers.join(', ')}`
+                  .map((comb, index) =>
+                    `${index + 1}. ${comb.combinationNumbers?.join(', ') || 'Invalid data'}`
                   )
                   .join('\n');
                 navigator.clipboard.writeText(text);
@@ -200,7 +214,7 @@ export default function ResultsPanel({
               onClick={() => {
                 const shareData = {
                   generationId,
-                  combinations: combinations.map(comb => comb.combination_numbers)
+                  combinations: combinations.map(comb => comb.combinationNumbers || [])
                 };
                 const base64Data = btoa(JSON.stringify(shareData));
                 const shareUrl = `${window.location.origin}?data=${base64Data}`;
