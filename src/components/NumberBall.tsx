@@ -54,7 +54,7 @@ export default function NumberBall({
       onClick={handleClick}
       className={`
         relative rounded-full font-bold text-white shadow-md
-        bg-gradient-to-br ${getBallColor(number)}
+        bg-linear-to-br ${getBallColor(number)}
         transition-all duration-200 hover:scale-110 hover:shadow-lg
         ${getSizeClasses()}
         ${selected ? 'ring-4 ring-yellow-400 transform scale-110 shadow-lg' : ''}
@@ -67,7 +67,7 @@ export default function NumberBall({
       </span>
       
       {/* Inner shine effect */}
-      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent opacity-50" />
+      <div className="absolute inset-0 rounded-full bg-linear-to-br from-white/20 to-transparent opacity-50" />
     </button>
   );
 }

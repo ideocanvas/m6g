@@ -89,7 +89,7 @@ export default function NumberSelection({
       </div>
 
       {/* Number Grid */}
-      <div className="flex-grow mb-6">
+      <div className="grow mb-6">
         <div className="grid grid-cols-7 gap-2 mb-4">
           {Array.from({ length: 49 }, (_, i) => i + 1).map(number => (
             <NumberBall

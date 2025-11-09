@@ -122,7 +122,7 @@ export default function ResultsPanel({
       </div>
 
       {/* Combinations Section */}
-      <div className="flex-grow mb-6">
+      <div className="grow mb-6">
         {combinations.length > 0 ? (
           <div>
             <div className="text-center mb-4">
