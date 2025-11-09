@@ -83,6 +83,7 @@ async function checkExistingTables(): Promise<boolean> {
     // If we can query the table without error, it exists
     return !error;
   } catch (error) {
+    console.log("failed to check existing tables", error);
     return false;
   }
 }
