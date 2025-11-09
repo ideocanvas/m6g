@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import { ResultsPanelProps, Combination } from '@/types/mark6';
 import NumberBall from './NumberBall';
+import { labels } from '@/lib/i18n';
 
 export default function ResultsPanel({
   combinations,
   generationId,
   drawResults,
   onCheckDrawResults,
+  language,
 }: ResultsPanelProps) {
   const [selectedDate, setSelectedDate] = useState<string>('');
 
@@ -18,7 +20,7 @@ export default function ResultsPanel({
 
   const handleCheckDrawResults = () => {
     if (!selectedDate) {
-      alert('Please select a date');
+      alert(labels[language].please_select_date);
       return;
     }
     onCheckDrawResults(selectedDate);
@@ -79,7 +81,7 @@ export default function ResultsPanel({
     return (
       <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
         <h3 className="text-lg font-semibold text-gray-800 mb-3">
-          Draw Results - {drawResults.date_text}
+          {labels[language].draw_results} - {drawResults.date_text}
         </h3>
         <div className="flex items-center gap-2 mb-4">
           {drawResults.winning_numbers.map((number, index) => (
@@ -100,12 +102,12 @@ export default function ResultsPanel({
         
         {combinations.length > 0 && (
           <div className="text-sm text-gray-600">
-            <p>Matching numbers are highlighted in your combinations above.</p>
+            <p>{labels[language].matching_numbers_highlighted}</p>
             <p className="mt-1">
               <span className="inline-block w-3 h-3 bg-orange-500 rounded-full mr-1"></span>
-              Winning numbers
+              {labels[language].winning_numbers}
               <span className="inline-block w-3 h-3 bg-gray-400 rounded-full mx-3 mr-1 ml-4"></span>
-              Special number
+              {labels[language].special_number}
             </p>
           </div>
         )}
@@ -117,8 +119,8 @@ export default function ResultsPanel({
     <div className="bg-white/80 backdrop-blur-lg rounded-xl shadow-2xl p-6 border border-white/20 h-full flex flex-col">
       {/* Header */}
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Results & Records</h2>
-        <p className="text-gray-600">View generated combinations and check results</p>
+        <h2 className="text-2xl font-bold text-gray-800">{labels[language].results_records}</h2>
+        <p className="text-gray-600">{labels[language].view_generated_combinations}</p>
       </div>
 
       {/* Combinations Section */}
@@ -127,10 +129,10 @@ export default function ResultsPanel({
           <div>
             <div className="text-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">
-                Generation ID: {generationId}
+                {labels[language].generation_id} {generationId}
               </h3>
               <p className="text-sm text-gray-600">
-                {combinations.length} combination{combinations.length > 1 ? 's' : ''} generated
+                {combinations.length} {labels[language].combinations_generated}
               </p>
             </div>
             
@@ -143,9 +145,9 @@ export default function ResultsPanel({
         ) : (
           <div className="text-center py-12">
             <div className="text-gray-400 text-6xl mb-4">🎯</div>
-            <p className="text-gray-500">No combinations generated yet</p>
+            <p className="text-gray-500">{labels[language].no_combinations_generated}</p>
             <p className="text-sm text-gray-400 mt-2">
-              Generate some combinations to see them here
+              {labels[language].generate_some_combinations}
             </p>
           </div>
         )}
@@ -155,7 +157,7 @@ export default function ResultsPanel({
       <div className="space-y-4 border-t pt-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Check Draw Results
+            {labels[language].check_draw_results}
           </label>
           <div className="flex gap-2">
             <input
@@ -169,7 +171,7 @@ export default function ResultsPanel({
               onClick={handleCheckDrawResults}
               className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition-colors font-medium"
             >
-              Check
+              {labels[language].check}
             </button>
           </div>
         </div>
@@ -188,11 +190,11 @@ export default function ResultsPanel({
                   )
                   .join('\n');
                 navigator.clipboard.writeText(text);
-                alert('Combinations copied to clipboard!');
+                alert(labels[language].combinations_copied);
               }}
               className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
             >
-              Copy Combinations
+              {labels[language].copy_combinations}
             </button>
             <button
               onClick={() => {
@@ -203,11 +205,11 @@ export default function ResultsPanel({
                 const base64Data = btoa(JSON.stringify(shareData));
                 const shareUrl = `${window.location.origin}?data=${base64Data}`;
                 navigator.clipboard.writeText(shareUrl);
-                alert('Share link copied to clipboard!');
+                alert(labels[language].share_link_copied_to_clipboard);
               }}
               className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors font-medium"
             >
-              Share
+              {labels[language].share}
             </button>
           </div>
         )}

@@ -103,7 +103,7 @@ export default function NumberSelection({
         </div>
         
         <div className="text-center text-sm text-gray-600">
-          {replacePlaceholders(labels[language].selected_balls, { count: selectedNumbers.length })} / {requiredCount} {language === 'zh-TW' ? '需要' : 'required'}
+          {replacePlaceholders(labels[language].selected_balls, { count: selectedNumbers.length })} / {requiredCount} {labels[language].required}
         </div>
       </div>
 
@@ -177,13 +177,13 @@ export default function NumberSelection({
             onClick={onSelectAll}
             className="bg-yellow-500 text-white py-2 px-3 rounded-lg hover:bg-yellow-600 transition-colors text-sm font-medium"
           >
-            {language === 'zh-TW' ? '全選' : 'Select All'}
+            {labels[language].select_all}
           </button>
           <button
             onClick={onClearSelection}
             className="bg-red-500 text-white py-2 px-3 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
           >
-            {language === 'zh-TW' ? '清除全部' : 'Clear All'}
+            {labels[language].clear_all}
           </button>
         </div>
 

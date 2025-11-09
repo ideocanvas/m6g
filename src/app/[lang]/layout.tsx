@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from 'next/headers';
 import "../globals.css";
 import { LanguageCode } from '@/lib/i18n';
 
@@ -25,12 +26,18 @@ interface RootLayoutProps {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
   params,
 }: Readonly<RootLayoutProps>) {
+  const cookieStore = await cookies();
+  const languageCookie = cookieStore.get('mark6-language');
+  
+  // Use cookie language if available, otherwise use URL param
+  const htmlLang = languageCookie?.value === 'zh-TW' ? 'zh-TW' : params.lang;
+  console.log("htmlLang", htmlLang);
   return (
-    <html lang={params.lang}>
+    <html lang={htmlLang}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

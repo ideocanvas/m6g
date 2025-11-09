@@ -6,6 +6,7 @@ import NumberSelection from './NumberSelection';
 import ResultsPanel from './ResultsPanel';
 import { Combination, DrawResult } from '@/types/mark6';
 import { labels, LanguageCode, saveLanguagePreference } from '@/lib/i18n';
+import { setLanguageCookie } from '@/lib/cookies';
 
 interface MarkSixGeneratorProps {
   language: LanguageCode;
@@ -54,6 +55,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   // Handle language change with URL navigation
   const handleLanguageChange = (newLanguage: LanguageCode) => {
     saveLanguagePreference(newLanguage);
+    setLanguageCookie(newLanguage);
     router.push(`/${newLanguage}`);
   };
 

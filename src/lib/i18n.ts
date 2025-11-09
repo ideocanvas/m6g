@@ -35,6 +35,25 @@ export interface LanguageLabels {
   ai_prompt_copied: string;
   ai_prompt_failed: string;
   generation_failed: string;
+  required: string;
+  select_all: string;
+  clear_all: string;
+  results_records: string;
+  view_generated_combinations: string;
+  generation_id: string;
+  combinations_generated: string;
+  no_combinations_generated: string;
+  generate_some_combinations: string;
+  check_draw_results: string;
+  check: string;
+  draw_results: string;
+  matching_numbers_highlighted: string;
+  winning_numbers: string;
+  special_number: string;
+  copy_combinations: string;
+  share: string;
+  combinations_copied: string;
+  share_link_copied_to_clipboard: string;
 }
 
 export type LanguageCode = 'en' | 'zh-TW';
@@ -73,7 +92,26 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     suggestion_failed: 'Suggestion failed!',
     ai_prompt_copied: 'AI prompt copied to clipboard!',
     ai_prompt_failed: 'AI prompt generation failed.',
-    generation_failed: 'Generation failed. Please try again.'
+    generation_failed: 'Generation failed. Please try again.',
+    required: 'required',
+    select_all: 'Select All',
+    clear_all: 'Clear All',
+    results_records: 'Results & Records',
+    view_generated_combinations: 'View generated combinations and check results',
+    generation_id: 'Generation ID:',
+    combinations_generated: 'combinations generated',
+    no_combinations_generated: 'No combinations generated yet',
+    generate_some_combinations: 'Generate some combinations to see them here',
+    check_draw_results: 'Check Draw Results',
+    check: 'Check',
+    draw_results: 'Draw Results',
+    matching_numbers_highlighted: 'Matching numbers are highlighted in your combinations above.',
+    winning_numbers: 'Winning numbers',
+    special_number: 'Special number',
+    copy_combinations: 'Copy Combinations',
+    share: 'Share',
+    combinations_copied: 'Combinations copied to clipboard!',
+    share_link_copied_to_clipboard: 'Share link copied to clipboard!'
   },
   'zh-TW': {
     title: '六合彩生成器',
@@ -108,7 +146,26 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     suggestion_failed: '建議失敗！',
     ai_prompt_copied: 'AI 提示已複製到剪貼簿！',
     ai_prompt_failed: 'AI 提示生成失敗。',
-    generation_failed: '生成失敗，請重試。'
+    generation_failed: '生成失敗，請重試。',
+    required: '需要',
+    select_all: '全選',
+    clear_all: '清除全部',
+    results_records: '結果與記錄',
+    view_generated_combinations: '查看生成的組合並檢查結果',
+    generation_id: '生成ID：',
+    combinations_generated: '個組合已生成',
+    no_combinations_generated: '尚未生成任何組合',
+    generate_some_combinations: '生成一些組合以在此查看',
+    check_draw_results: '檢查開獎結果',
+    check: '檢查',
+    draw_results: '開獎結果',
+    matching_numbers_highlighted: '匹配的號碼已在您的組合中高亮顯示。',
+    winning_numbers: '中獎號碼',
+    special_number: '特別號碼',
+    copy_combinations: '複製組合',
+    share: '分享',
+    combinations_copied: '組合已複製到剪貼簿！',
+    share_link_copied_to_clipboard: '分享連結已複製到剪貼簿！'
   }
 };
 

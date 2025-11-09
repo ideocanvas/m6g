@@ -1,5 +1,16 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { LanguageCode } from '@/lib/i18n';
 
-export default function Home() {
-  redirect('/en');
+export default async function Home() {
+  const cookieStore = await cookies();
+  const languageCookie = cookieStore.get('mark6-language');
+  
+  let targetLanguage: LanguageCode = 'en';
+  
+  if (languageCookie?.value === 'zh-TW') {
+    targetLanguage = 'zh-TW';
+  }
+  
+  redirect(`/${targetLanguage}`);
 }
