@@ -305,7 +305,7 @@ const PRIZE_CATEGORIES: PrizeCategory[] = [
   {
     name: 'First Prize',
     description: '選中6個「攪出號碼」',
-    matchCondition: (matchedWinning, matchedSpecial) => matchedWinning === 6,
+    matchCondition: (matchedWinning) => matchedWinning === 6,
     prizeAmount: 8000000 // Variable prize, minimum HK$8,000,000
   },
   {
