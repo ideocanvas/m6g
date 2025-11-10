@@ -34,6 +34,13 @@ export default async function RootLayout({
   console.log("htmlLang", htmlLang);
   return (
     <html lang={htmlLang}>
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2207805704631015"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
