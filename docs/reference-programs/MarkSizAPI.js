@@ -101,7 +101,7 @@ const downloadPreviousResults = async (start, days, mark6ResultMap) => {
                 xDrawnNo
             }
         }
-        
+
         query marksixResult($lastNDraw: Int, $startDate: String, $endDate: String, $drawType: LotteryDrawType) {
             lotteryDraws(
                 lastNDraw: $lastNDraw
@@ -414,7 +414,7 @@ async function generateNumbersImpl(combinationCount, selectedNumbers, luckyNumbe
 
 async function generateNumbersByAI(generationId, combinationCount, selectedNumbers, luckyNumber, isDouble) {
     try {
-        const systemPrompt = `You are a lottery number generator expert for Hong Kong Mark Six. 
+        const systemPrompt = `You are a lottery number generator expert for Hong Kong Mark Six.
 Rules:
 1. Generate ${combinationCount} combinations
 2. Each combination must include the lucky number ${luckyNumber}
@@ -423,8 +423,8 @@ Rules:
 5. All numbers must be between 1-49 with no duplicates
 6. Output JSON array format example: [[1,2,3,4,5,6], [7,8,9,10,11,12]]`;
 
-        const userPrompt = `Generate ${combinationCount} valid Mark Six combinations following all rules. 
-Include ${luckyNumber} in every combination. 
+        const userPrompt = `Generate ${combinationCount} valid Mark Six combinations following all rules.
+Include ${luckyNumber} in every combination.
 ${isDouble ? 'First 5 numbers should have good spread, last 2 special numbers' : ''}
 Strictly use this JSON format without any extra text: [ [num1,...], ... ]`;
 
@@ -432,7 +432,7 @@ Strictly use this JSON format without any extra text: [ [num1,...], ... ]`;
             'POST',
             {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer 1d1ef305-d5bc-453a-a2a0-00dda752f7c2'
+                'Authorization': 'Bearer ' + process.env.KLUSTER_API_KEY
             },
             JSON.stringify({
                 model: "deepseek-ai/DeepSeek-R1",
@@ -778,7 +778,7 @@ async function generateNumbersV2(generationId, combinationCount, selectedNumbers
                 });
             }
         }
-        
+
         if (DEBUG) {
             const sortedWeightedPool = Array.from(weightedPool.entries()).sort((a, b) => b[1] - a[1]);
             logger.log(`[DEBUG] Top 15 numbers in weighted pool (Number => Weight):`);
@@ -792,7 +792,7 @@ async function generateNumbersV2(generationId, combinationCount, selectedNumbers
                 selectionArray.push(num);
             }
         });
-        
+
         if (selectionArray.length < 49) {
              for (let i = 1; i <= 49; i++) {
                 if (!weightedPool.has(i)) selectionArray.push(i);
@@ -840,10 +840,10 @@ async function generateNumbersV2(generationId, combinationCount, selectedNumbers
                 }
                 attempts++;
             }
-            
+
             const finalCombination = Array.from(combination);
             finalCombination.sort((a, b) => a - b);
-            
+
             if (finalCombination.length === combinationLength) {
                 generatedCombinations.push(finalCombination);
                 if (DEBUG) logger.log(`[SUCCESS] Final Combination #${i + 1}: [${finalCombination.join(', ')}]`);
@@ -970,7 +970,7 @@ const run = async () => {
             const hot_numbers = await getHistoricalFrequency(10, 'hot');
             rtnVal = hot_numbers.slice(0, requiredCount).map(item => item.number);
         }
-        
+
         logger.log('rtnVal', JSON.stringify(rtnVal));
         resolve(rtnVal);
     } catch (error) {
