@@ -25,3 +25,17 @@ export interface BalancedResult {
   number: number;
   range: string;
 }
+
+export interface ClassicResult {
+  combination: number[];
+  sequenceNumber: number;
+  score?: number;
+  scoreDistribution?: Record<number, number>;
+  numberDistribution?: Array<{ number: number; frequency: number }>;
+}
+
+export interface FollowOnCombinationResult {
+  combination: number[];
+  sequenceNumber: number;
+  weights?: Map<number, number>;
+}
