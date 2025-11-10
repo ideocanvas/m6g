@@ -6,3 +6,4 @@ export * from './random';
 export * from './balanced';
 export * from './classic-combinations';
 export * from './follow-on-combinations';
+export * from './ensemble-combinations';

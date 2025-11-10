@@ -39,3 +39,15 @@ export interface FollowOnCombinationResult {
   sequenceNumber: number;
   weights?: Map<number, number>;
 }
+
+export interface EnsembleResult {
+  combination: number[];
+  sequenceNumber: number;
+  modelWeights: {
+    classic: number;
+    followOn: number;
+    frequency: number;
+    bayesian: number;
+  };
+  confidence: number;
+}
