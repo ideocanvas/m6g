@@ -68,6 +68,9 @@ export interface LanguageLabels {
   select_date: string;
   calendar: string;
   quick_select: string;
+  remove_x_numbers: string;
+  remove_x_numbers_suggestion: string;
+  extra_numbers: string;
 }
 
 export type LanguageCode = 'en' | 'zh-TW';
@@ -114,7 +117,7 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     ai_prompt_copied: 'AI prompt copied to clipboard!',
     ai_prompt_failed: 'AI prompt generation failed.',
     generation_failed: 'Generation failed. Please try again.',
-    required: 'required',
+    required: 'required ({required} needed, max {max})',
     select_all: 'Select All',
     clear_all: 'Clear All',
     results_records: 'Results & Records',
@@ -139,12 +142,15 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     last_month: 'Last Month',
     select_date: 'Select Date',
     calendar: 'Calendar',
-    quick_select: 'Quick Select'
+    quick_select: 'Quick Select',
+    remove_x_numbers: 'Remove {count} numbers',
+    remove_x_numbers_suggestion: 'You have selected {extra} extra numbers. Consider removing {count} numbers.',
+    extra_numbers: '({count} extra)'
   },
   'zh-TW': {
     title: '六合彩生成器',
     select_your_numbers: '選擇您的號碼',
-    selected_balls: '已選擇球數：',
+    selected_balls: '已選擇號碼：',
     number_of_combinations: '組合數量：',
     lucky_number: '幸運號碼：',
     select_lucky_number: '選擇幸運號碼',
@@ -182,7 +188,7 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     ai_prompt_copied: 'AI 提示已複製到剪貼簿！',
     ai_prompt_failed: 'AI 提示生成失敗。',
     generation_failed: '生成失敗，請重試。',
-    required: '需要',
+    required: '個（需{required}個，最多{max}個）',
     select_all: '全選',
     clear_all: '清除全部',
     results_records: '結果與記錄',
@@ -207,7 +213,10 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     last_month: '上個月',
     select_date: '選擇日期',
     calendar: '日曆',
-    quick_select: '快速選擇'
+    quick_select: '快速選擇',
+    remove_x_numbers: '移除 {count} 個號碼',
+    remove_x_numbers_suggestion: '您已選擇了 {extra} 個額外號碼。考慮移除 {count} 個號碼。',
+    extra_numbers: '（多{count}個）'
   }
 };
 

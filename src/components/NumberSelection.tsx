@@ -225,13 +225,36 @@ export default function NumberSelection({
         </div>
 
         <div className="text-center text-sm text-gray-600">
-          {labels[language].selected_balls} {selectedNumbers.length} / {requiredCount} {labels[language].required}
-          {selectedNumbers.length > requiredCount && (
-            <span className="text-orange-500 ml-1">
-              ({selectedNumbers.length - requiredCount} extra)
-            </span>
-          )}
+          {labels[language].selected_balls} {selectedNumbers.length} {replacePlaceholders(labels[language].required, { required: requiredCount, max: maxCount })}
         </div>
+
+        {/* Remove X numbers suggestion */}
+        {selectedNumbers.length > maxCount && (
+          <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-md">
+            <div className="text-sm text-orange-700 mb-1">
+              {replacePlaceholders(labels[language].remove_x_numbers_suggestion, {
+                extra: selectedNumbers.length - maxCount,
+                count: selectedNumbers.length - maxCount
+              })}
+            </div>
+            <button
+              onClick={() => {
+                // Remove the extra numbers (keep only maxCount numbers)
+                // Remove the last X numbers (simple approach)
+                const numbersToKeep = selectedNumbers.slice(0, maxCount);
+
+                // Clear all and re-add the numbers to keep
+                onClearSelection();
+                numbersToKeep.forEach(num => onNumberToggle(num));
+              }}
+              className="text-xs bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600 transition-colors"
+            >
+              {replacePlaceholders(labels[language].remove_x_numbers, {
+                count: selectedNumbers.length - maxCount
+              })}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Controls */}
