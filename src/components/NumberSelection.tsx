@@ -139,7 +139,6 @@ export default function NumberSelection({
           >
             <option value="">{labels[language].select_lucky_number}</option>
             {selectedNumbers
-              .filter(num => num !== luckyNumber)
               .sort((a, b) => a - b)
               .map(num => (
                 <option key={num} value={num}>

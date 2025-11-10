@@ -27,6 +27,8 @@ export default function NumberBall({
         return 'w-10 h-10 text-sm';
       case 'lg':
         return 'w-12 h-12 text-base';
+      case 'xl':
+        return 'w-14 h-14 text-lg';
       default:
         return 'w-10 h-10 text-sm';
     }

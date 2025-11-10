@@ -68,7 +68,7 @@ export default function ResultsPanel({
                   <span className="mx-1 text-gray-400 font-bold">+</span>
                   <NumberBall
                     number={number}
-                    size="sm"
+                    size="md"
                     highlight={highlight}
                   />
                 </div>
@@ -79,7 +79,7 @@ export default function ResultsPanel({
               <NumberBall
                 key={`${combination.id}-${idx}`}
                 number={number}
-                size="sm"
+                size="md"
                 highlight={highlight}
               />
             );
@@ -102,14 +102,14 @@ export default function ResultsPanel({
             <NumberBall
               key={`winning-${index}`}
               number={number}
-              size="md"
+              size="lg"
               highlight="winning"
             />
           ))}
           <span className="mx-2 text-xl font-bold text-gray-600">+</span>
           <NumberBall
             number={drawResults.specialNumber}
-            size="md"
+            size="lg"
             highlight="special"
           />
         </div>
@@ -132,15 +132,15 @@ export default function ResultsPanel({
   return (
     <div className="bg-white/80 backdrop-blur-lg rounded-xl shadow-2xl p-6 border border-white/20 h-full flex flex-col">
       {/* Header */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-4">
         <h2 className="text-2xl font-bold text-gray-800">{labels[language].results_records}</h2>
         <p className="text-gray-600">{labels[language].view_generated_combinations}</p>
       </div>
 
       {/* Combinations Section */}
-      <div className="grow mb-6">
+      <div className="flex-1 min-h-0">
         {combinations.length > 0 ? (
-          <div>
+          <div className="h-full flex flex-col">
             <div className="text-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">
                 {labels[language].generation_id} {generationId}
@@ -150,19 +150,23 @@ export default function ResultsPanel({
               </p>
             </div>
             
-            <div className="max-h-96 overflow-y-auto">
-              {combinations.map((combination, index) => 
-                renderCombination(combination, index)
-              )}
+            <div className="flex-1 overflow-y-auto">
+              <div className="flex flex-col items-center">
+                {combinations.map((combination, index) =>
+                  renderCombination(combination, index)
+                )}
+              </div>
             </div>
           </div>
         ) : (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">🎯</div>
-            <p className="text-gray-500">{labels[language].no_combinations_generated}</p>
-            <p className="text-sm text-gray-400 mt-2">
-              {labels[language].generate_some_combinations}
-            </p>
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-gray-400 text-6xl mb-4">🎯</div>
+              <p className="text-gray-500">{labels[language].no_combinations_generated}</p>
+              <p className="text-sm text-gray-400 mt-2">
+                {labels[language].generate_some_combinations}
+              </p>
+            </div>
           </div>
         )}
       </div>
