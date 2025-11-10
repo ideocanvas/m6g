@@ -190,7 +190,7 @@ async function convertData(args: CliArgs) {
       try {
         drawDate = new Date(result.drawDate);
         if (isNaN(drawDate.getTime())) throw new Error('Invalid draw date');
-      } catch (error) {
+      } catch {
         console.warn(`⚠️ Invalid draw date for result ${result.objectId}: ${result.drawDate}`);
         drawDate = null;
       }
@@ -198,7 +198,7 @@ async function convertData(args: CliArgs) {
       try {
         createdAt = new Date(result.createdAt);
         if (isNaN(createdAt.getTime())) throw new Error('Invalid created date');
-      } catch (error) {
+      } catch {
         console.warn(`⚠️ Invalid created date for result ${result.objectId}: ${result.createdAt}`);
         createdAt = new Date(); // Fallback to current date
       }
@@ -206,7 +206,7 @@ async function convertData(args: CliArgs) {
       try {
         updatedAt = new Date(result.updatedAt);
         if (isNaN(updatedAt.getTime())) throw new Error('Invalid updated date');
-      } catch (error) {
+      } catch {
         console.warn(`⚠️ Invalid updated date for result ${result.objectId}: ${result.updatedAt}`);
         updatedAt = new Date(); // Fallback to current date
       }
@@ -270,7 +270,7 @@ async function convertData(args: CliArgs) {
       try {
         generatedAt = new Date(record.generateDate);
         if (isNaN(generatedAt.getTime())) throw new Error('Invalid generate date');
-      } catch (error) {
+      } catch {
         console.warn(`⚠️ Invalid generate date for record ${record.objectId}: ${record.generateDate}`);
         generatedAt = new Date(); // Fallback to current date
       }
@@ -278,7 +278,7 @@ async function convertData(args: CliArgs) {
       try {
         createdAt = new Date(record.createdAt);
         if (isNaN(createdAt.getTime())) throw new Error('Invalid created date');
-      } catch (error) {
+      } catch {
         console.warn(`⚠️ Invalid created date for record ${record.objectId}: ${record.createdAt}`);
         createdAt = new Date(); // Fallback to current date
       }

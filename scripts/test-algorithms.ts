@@ -6,8 +6,11 @@
  * This program tests the algorithms in src/lib/algorithms against historical draw results.
  * It queries the database once for all required data and processes everything in memory.
  * 
- * Usage: pnpm tsx scripts/test-algorithms.ts [testYear]
- * Example: pnpm tsx scripts/test-algorithms.ts 2024
+ * Usage: pnpm tsx scripts/test-algorithms.ts [testYear] [algorithm]
+ * Examples:
+ *   pnpm tsx scripts/test-algorithms.ts 2024 classic
+ *   pnpm tsx scripts/test-algorithms.ts 2023 follow_on
+ *   pnpm tsx scripts/test-algorithms.ts 2024 ensemble
  */
 
 import {
@@ -16,7 +19,11 @@ import {
   generateRandomNumbers,
   generateBalancedNumbers,
   generateClassicCombinations,
-  generateFollowOnCombinations
+  generateClassicCombinationsOptimized,
+  generateFollowOnCombinations,
+  generateEnsembleCombinations,
+  generateBayesianCombinations,
+  generateAdvancedFollowOnCombinations
 } from '../src/lib/algorithms';
 import { DrawRecord } from '../src/lib/algorithms/types';
 
@@ -66,6 +73,7 @@ async function getRealDrawData(): Promise<DrawRecord[]> {
 interface TestConfig {
   testYear: number;
   yearsOfHistory: number;
+  algorithm: 'classic' | 'classic_optimized' | 'follow_on' | 'ensemble' | 'bayesian' | 'advanced_follow_on';
 }
 
 interface CombinationType {
@@ -164,11 +172,15 @@ const SUGGESTION_ALGORITHMS: SuggestionAlgorithm[] = [
   { name: 'Balanced', type: 'balanced' }
 ];
 
-// Generation algorithms to test
-const GENERATION_ALGORITHMS: GenerationAlgorithm[] = [
-  { name: 'Classic (V1)', type: 'classic' },
-  { name: 'Follow-on (V2)', type: 'follow_on' }
-];
+// Generation algorithms mapping
+const GENERATION_ALGORITHMS: Record<string, GenerationAlgorithm> = {
+  classic: { name: 'Classic (V1)', type: 'classic' },
+  follow_on: { name: 'Follow-on (V2)', type: 'follow_on' },
+  ensemble: { name: 'Ensemble', type: 'follow_on' }, // Note: ensemble uses follow_on type for compatibility
+  bayesian: { name: 'Bayesian', type: 'follow_on' }, // Note: bayesian uses follow_on type for compatibility
+  classic_optimized: { name: 'Classic Optimized', type: 'classic' }, // Note: classic_optimized uses classic type for compatibility
+  advanced_follow_on: { name: 'Advanced Follow-on', type: 'follow_on' } // Note: advanced_follow_on uses follow_on type for compatibility
+};
 
 /**
  * Get numbers based on suggestion algorithm
@@ -233,7 +245,50 @@ function generateCombinations(
       lastDrawNumbers || []
     );
     return results.map(r => r.combination);
+  } else if (generationAlgorithm.name === 'Ensemble') {
+    // Use the ensemble algorithm
+    const results = generateEnsembleCombinations(
+      combinationType.combinationCount,
+      selectedNumbers,
+      luckyNumber,
+      combinationType.isDouble,
+      historicalDraws,
+      lastDrawNumbers
+    );
+    return results.map((r: { combination: number[] }) => r.combination);
+  } else if (generationAlgorithm.name === 'Bayesian') {
+    // Use the bayesian algorithm
+    const results = generateBayesianCombinations(
+      combinationType.combinationCount,
+      selectedNumbers,
+      luckyNumber,
+      combinationType.isDouble,
+      historicalDraws,
+      lastDrawNumbers
+    );
+    return results.map((r: { combination: number[] }) => r.combination);
+  } else if (generationAlgorithm.name === 'Advanced Follow-on') {
+    // Use the advanced follow-on algorithm
+    const results = generateAdvancedFollowOnCombinations(
+      combinationType.combinationCount,
+      selectedNumbers,
+      luckyNumber,
+      combinationType.isDouble,
+      historicalDraws
+    );
+    return results.map((r: { combination: number[] }) => r.combination);
+  } else if (generationAlgorithm.name === 'Classic Optimized') {
+    // Use the optimized classic algorithm
+    const results = generateClassicCombinationsOptimized(
+      combinationType.combinationCount,
+      selectedNumbers,
+      luckyNumber,
+      combinationType.isDouble,
+      historicalDraws
+    );
+    return results.map((r: { combination: number[] }) => r.combination);
   } else {
+    // Default to classic algorithm
     const results = generateClassicCombinations(
       combinationType.combinationCount,
       selectedNumbers,
@@ -241,7 +296,7 @@ function generateCombinations(
       combinationType.isDouble,
       historicalDraws
     );
-    return results.map(r => r.combination);
+    return results.map((r: { combination: number[] }) => r.combination);
   }
 }
 
@@ -380,6 +435,7 @@ function calculatePrizeResults(combinations: number[][], actualDraw: DrawRecord)
  */
 async function runTest(config: TestConfig): Promise<void> {
   console.log(`Starting test for year ${config.testYear} with ${config.yearsOfHistory} years of history`);
+  console.log(`Testing algorithm: ${config.algorithm}`);
   console.log('=' .repeat(80));
   
   // Calculate date range
@@ -449,43 +505,47 @@ async function runTest(config: TestConfig): Promise<void> {
       ? [...lastDraw.winningNumbers, lastDraw.specialNumber]
       : undefined;
     
-    // Test each combination type, suggestion algorithm, and generation algorithm
+    // Test each combination type and suggestion algorithm with the selected generation algorithm
+    const generationAlgorithm = GENERATION_ALGORITHMS[config.algorithm];
+    
+    if (!generationAlgorithm) {
+      throw new Error(`Unknown algorithm: ${config.algorithm}`);
+    }
+    
     for (const combinationType of COMBINATION_TYPES) {
       for (const suggestionAlgorithm of SUGGESTION_ALGORITHMS) {
-        for (const generationAlgorithm of GENERATION_ALGORITHMS) {
-          // Get selected numbers based on suggestion algorithm
-          const selectedNumbers = getNumbersByAlgorithm(
-            suggestionAlgorithm,
-            historicalDataUpToDraw,
-            lastDrawNumbers
-          );
-          
-          // Generate combinations using generation algorithm
-          const generatedCombinations = generateCombinations(
-            combinationType,
-            selectedNumbers,
-            historicalDataUpToDraw,
-            suggestionAlgorithm,
-            generationAlgorithm,
-            lastDrawNumbers
-          );
-          
-          // Calculate prize results for all combinations
-          const prizeResults = calculatePrizeResults(generatedCombinations, testDraw);
-          
-          const result: TestResult = {
-            drawDate,
-            combinationType: combinationType.name,
-            suggestionAlgorithm: suggestionAlgorithm.name,
-            generationAlgorithm: generationAlgorithm.name,
-            selectedNumbers,
-            generatedCombinations,
-            actualDraw: testDraw,
-            prizeResults
-          };
-          
-          allResults.push(result);
-        }
+        // Get selected numbers based on suggestion algorithm
+        const selectedNumbers = getNumbersByAlgorithm(
+          suggestionAlgorithm,
+          historicalDataUpToDraw,
+          lastDrawNumbers
+        );
+        
+        // Generate combinations using generation algorithm
+        const generatedCombinations = generateCombinations(
+          combinationType,
+          selectedNumbers,
+          historicalDataUpToDraw,
+          suggestionAlgorithm,
+          generationAlgorithm,
+          lastDrawNumbers
+        );
+        
+        // Calculate prize results for all combinations
+        const prizeResults = calculatePrizeResults(generatedCombinations, testDraw);
+        
+        const result: TestResult = {
+          drawDate,
+          combinationType: combinationType.name,
+          suggestionAlgorithm: suggestionAlgorithm.name,
+          generationAlgorithm: generationAlgorithm.name,
+          selectedNumbers,
+          generatedCombinations,
+          actualDraw: testDraw,
+          prizeResults
+        };
+        
+        allResults.push(result);
       }
     }
   }
@@ -499,60 +559,57 @@ async function runTest(config: TestConfig): Promise<void> {
   
   for (const combinationType of COMBINATION_TYPES) {
     for (const suggestionAlgorithm of SUGGESTION_ALGORITHMS) {
-      for (const generationAlgorithm of GENERATION_ALGORITHMS) {
-        const relevantResults = allResults.filter(r =>
-          r.combinationType === combinationType.name &&
-          r.suggestionAlgorithm === suggestionAlgorithm.name &&
-          r.generationAlgorithm === generationAlgorithm.name
-        );
-        
-        if (relevantResults.length === 0) continue;
-        
-        let totalCombinations = 0;
-        const prizeDistribution = {
-          firstPrize: 0,
-          secondPrize: 0,
-          thirdPrize: 0,
-          fourthPrize: 0,
-          fifthPrize: 0,
-          sixthPrize: 0,
-          seventhPrize: 0
-        };
-        let totalPrizeAmount = 0;
-        
-        for (const result of relevantResults) {
-          const prizeResult = result.prizeResults;
-          totalCombinations += prizeResult.totalCombinations;
-          prizeDistribution.firstPrize += prizeResult.firstPrize;
-          prizeDistribution.secondPrize += prizeResult.secondPrize;
-          prizeDistribution.thirdPrize += prizeResult.thirdPrize;
-          prizeDistribution.fourthPrize += prizeResult.fourthPrize;
-          prizeDistribution.fifthPrize += prizeResult.fifthPrize;
-          prizeDistribution.sixthPrize += prizeResult.sixthPrize;
-          prizeDistribution.seventhPrize += prizeResult.seventhPrize;
-          totalPrizeAmount += prizeResult.totalPrize;
-        }
-        
-        const totalPrizes = prizeDistribution.firstPrize + prizeDistribution.secondPrize +
-                           prizeDistribution.thirdPrize + prizeDistribution.fourthPrize +
-                           prizeDistribution.fifthPrize + prizeDistribution.sixthPrize +
-                           prizeDistribution.seventhPrize;
-        
-        const hitRate = (totalPrizes / totalCombinations) * 100;
-        const averagePrizePerCombination = totalPrizeAmount / totalCombinations;
-        
-        summaryStats.push({
-          combinationType: combinationType.name,
-          suggestionAlgorithm: suggestionAlgorithm.name,
-          generationAlgorithm: generationAlgorithm.name,
-          totalDraws: relevantResults.length,
-          totalCombinations,
-          prizeDistribution,
-          totalPrizeAmount,
-          averagePrizePerCombination,
-          hitRate
-        });
+      const relevantResults = allResults.filter((r: TestResult) =>
+        r.combinationType === combinationType.name &&
+        r.suggestionAlgorithm === suggestionAlgorithm.name
+      );
+      
+      if (relevantResults.length === 0) continue;
+      
+      let totalCombinations = 0;
+      const prizeDistribution = {
+        firstPrize: 0,
+        secondPrize: 0,
+        thirdPrize: 0,
+        fourthPrize: 0,
+        fifthPrize: 0,
+        sixthPrize: 0,
+        seventhPrize: 0
+      };
+      let totalPrizeAmount = 0;
+      
+      for (const result of relevantResults) {
+        const prizeResult = result.prizeResults;
+        totalCombinations += prizeResult.totalCombinations;
+        prizeDistribution.firstPrize += prizeResult.firstPrize;
+        prizeDistribution.secondPrize += prizeResult.secondPrize;
+        prizeDistribution.thirdPrize += prizeResult.thirdPrize;
+        prizeDistribution.fourthPrize += prizeResult.fourthPrize;
+        prizeDistribution.fifthPrize += prizeResult.fifthPrize;
+        prizeDistribution.sixthPrize += prizeResult.sixthPrize;
+        prizeDistribution.seventhPrize += prizeResult.seventhPrize;
+        totalPrizeAmount += prizeResult.totalPrize;
       }
+      
+      const totalPrizes = prizeDistribution.firstPrize + prizeDistribution.secondPrize +
+                         prizeDistribution.thirdPrize + prizeDistribution.fourthPrize +
+                         prizeDistribution.fifthPrize + prizeDistribution.sixthPrize +
+                         prizeDistribution.seventhPrize;
+      
+      const hitRate = (totalPrizes / totalCombinations) * 100;
+      const averagePrizePerCombination = totalPrizeAmount / totalCombinations;
+      
+      summaryStats.push({
+        combinationType: combinationType.name,
+        suggestionAlgorithm: suggestionAlgorithm.name,
+        generationAlgorithm: config.algorithm,
+        totalDraws: relevantResults.length,
+        totalCombinations,
+        prizeDistribution,
+        totalPrizeAmount,
+        averagePrizePerCombination,
+        hitRate
+      });
     }
   }
   
@@ -610,27 +667,100 @@ async function runTest(config: TestConfig): Promise<void> {
 }
 
 /**
- * Main function
+ * Prompt user for input
+ */
+async function prompt(question: string): Promise<string> {
+  const readline = await import('readline');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  
+  return new Promise((resolve) => {
+    rl.question(question, (answer: string) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
+}
+
+/**
+ * Main function with interactive prompts
  */
 async function main() {
-  const args = process.argv.slice(2);
+  console.log('=== Mark Six Algorithm Testing Program ===\n');
   
-  if (args.length === 0) {
-    console.log('Usage: pnpm tsx scripts/test-algorithms.ts [testYear]');
-    console.log('Example: pnpm tsx scripts/test-algorithms.ts 2024');
-    process.exit(1);
+  // Prompt for test year
+  let testYear: number;
+  while (true) {
+    const yearInput = await prompt('Enter test year (2000-2100): ');
+    testYear = parseInt(yearInput);
+    
+    if (!isNaN(testYear) && testYear >= 2000 && testYear <= 2100) {
+      break;
+    }
+    console.log('Please enter a valid year between 2000 and 2100');
   }
   
-  const testYear = parseInt(args[0]);
-  
-  if (isNaN(testYear) || testYear < 2000 || testYear > 2100) {
-    console.error('Please provide a valid year between 2000 and 2100');
-    process.exit(1);
+  // Prompt for algorithm selection
+  let algorithm: 'classic' | 'classic_optimized' | 'follow_on' | 'ensemble' | 'bayesian' | 'advanced_follow_on';
+  while (true) {
+    console.log('\nAvailable algorithms:');
+    console.log('1. Classic (V1) - Statistical analysis with frequency factors');
+    console.log('2. Classic Optimized - Performance-optimized version of Classic');
+    console.log('3. Follow-on (V2) - Pattern-based consecutive draw analysis');
+    console.log('4. Ensemble - Combined approach with dynamic weighting');
+    console.log('5. Bayesian - Probability-based model with evidence updating');
+    console.log('6. Advanced Follow-on - Multi-step chains with conditional probabilities');
+    
+    const algoInput = await prompt('\nSelect algorithm (1-6): ');
+    
+    switch (algoInput.trim()) {
+      case '1':
+        algorithm = 'classic';
+        break;
+      case '2':
+        algorithm = 'classic_optimized';
+        break;
+      case '3':
+        algorithm = 'follow_on';
+        break;
+      case '4':
+        algorithm = 'ensemble';
+        break;
+      case '5':
+        algorithm = 'bayesian';
+        break;
+      case '6':
+        algorithm = 'advanced_follow_on';
+        break;
+      default:
+        console.log('Please enter 1, 2, 3, 4, 5, or 6');
+        continue;
+    }
+    break;
   }
+  
+  // Optional: Prompt for years of history
+  let yearsOfHistory = 3;
+  const historyInput = await prompt(`\nEnter years of history to analyze (default: 3): `);
+  if (historyInput.trim()) {
+    const parsedHistory = parseInt(historyInput);
+    if (!isNaN(parsedHistory) && parsedHistory > 0 && parsedHistory <= 10) {
+      yearsOfHistory = parsedHistory;
+    }
+  }
+  
+  console.log(`\nStarting test with:`);
+  console.log(`- Test Year: ${testYear}`);
+  console.log(`- Algorithm: ${algorithm}`);
+  console.log(`- Years of History: ${yearsOfHistory}`);
+  console.log('=' .repeat(40));
   
   const config: TestConfig = {
     testYear,
-    yearsOfHistory: 3 // Test year + previous 3 years as requested
+    yearsOfHistory,
+    algorithm
   };
   
   try {

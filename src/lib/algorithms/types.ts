@@ -51,3 +51,9 @@ export interface EnsembleResult {
   };
   confidence: number;
 }
+
+export interface BayesianResult {
+  combination: number[];
+  sequenceNumber: number;
+  probability: number;
+}
