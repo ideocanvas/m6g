@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
  * GET /api/prompts - Get information about available prompt types
  * Query parameters: none
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const promptTypes = [
       {

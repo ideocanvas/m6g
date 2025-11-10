@@ -88,13 +88,13 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   };
 
   // Get number suggestions
-  const suggestNumbers = async (type: 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced') => {
+  const suggestNumbers = async (type: 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced', count: number) => {
     try {
       let suggestedNumbers: number[] = [];
 
       if (type === 'random' || type === 'balanced') {
         // Generate random or balanced numbers locally
-        suggestedNumbers = generateLocalSuggestions(type, getRequiredCount());
+        suggestedNumbers = generateLocalSuggestions(type, count);
       } else {
         // Use API for historical analysis
         const response = await fetch(`/api/analysis?type=${type}&drawCount=100`);
@@ -103,11 +103,19 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
         }
 
         const data = await response.json() as { data: Array<{ number: number }> };
-        suggestedNumbers = data.data.slice(0, getRequiredCount()).map((item: { number: number }) => item.number);
+        suggestedNumbers = data.data.slice(0, count).map((item: { number: number }) => item.number);
       }
 
-      // Clear current selection and set suggested numbers
-      setSelectedNumbers(suggestedNumbers);
+      // Add suggested numbers to current selection (don't clear existing selections)
+      setSelectedNumbers(prev => {
+        const combined = [...prev];
+        for (const num of suggestedNumbers) {
+          if (!combined.includes(num)) {
+            combined.push(num);
+          }
+        }
+        return combined;
+      });
     } catch (error) {
       console.error('Error getting suggestions:', error);
       alert(labels[language].suggestion_failed);

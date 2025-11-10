@@ -29,6 +29,21 @@ export default function NumberSelection({
   const [lastSuggestionType, setLastSuggestionType] = useState<string | null>(null);
   const [isGeneratingAIPrompt, setIsGeneratingAIPrompt] = useState(false);
   const [isGeneratingQiMenPrompt, setIsGeneratingQiMenPrompt] = useState(false);
+  const [selectedSuggestionType, setSelectedSuggestionType] = useState<string>('follow_on');
+
+  // Calculate suggestion limits based on combination option
+  // For simplicity, treat x1 and x2 equally, use x1 limit
+  // Default is 6, min is 1, max is one third of required count
+  const getSuggestionLimits = () => {
+    const defaultCount = 6;
+    const minCount = 1;
+    const maxCount = Math.floor(requiredCount / 3);
+
+    return { defaultCount, minCount, maxCount };
+  };
+
+  const { defaultCount, minCount, maxCount } = getSuggestionLimits();
+  const [suggestionCount, setSuggestionCount] = useState<number>(defaultCount);
 
   const combinationOptions = [
     { value: 4, label: '4 x 1' },
@@ -48,6 +63,19 @@ export default function NumberSelection({
     { value: 'random', label: labels[language].suggest_random },
     { value: 'balanced', label: labels[language].suggest_balanced },
   ];
+
+  // Calculate maximum numbers that can be suggested
+  const getMaxSuggestionCount = () => {
+    const currentSelectedCount = selectedNumbers.length;
+    const remainingCount = requiredCount - currentSelectedCount;
+    return Math.max(0, remainingCount);
+  };
+
+  // Update suggestion count when combination or selection changes
+  const maxSuggestionCount = getMaxSuggestionCount();
+  if (suggestionCount > maxSuggestionCount && maxSuggestionCount > 0) {
+    setSuggestionCount(maxSuggestionCount);
+  }
 
   const handleCombinationChange = (value: string) => {
     const option = combinationOptions.find(opt => opt.label === value);
@@ -194,6 +222,11 @@ export default function NumberSelection({
 
         <div className="text-center text-sm text-gray-600">
           {replacePlaceholders(labels[language].selected_balls, { count: selectedNumbers.length })} / {requiredCount} {labels[language].required}
+          {selectedNumbers.length > requiredCount && (
+            <span className="text-orange-500 ml-1">
+              ({selectedNumbers.length - requiredCount} extra)
+            </span>
+          )}
         </div>
       </div>
 
@@ -245,33 +278,54 @@ export default function NumberSelection({
                 value: option.value,
                 label: option.label,
               }))}
-              value={null}
-              onChange={async (value) => {
-                if (value) {
-                  setIsLoading(true);
-                  setLastSuggestionType(value as string);
-                  try {
-                    await onSuggestNumbers(value as 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced');
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }
+              value={selectedSuggestionType}
+              onChange={(value) => {
+                setSelectedSuggestionType(value as string);
+                // Don't auto-suggest when user changes the option
               }}
               placeholder={labels[language].suggest_numbers}
               className="flex-1"
               disabled={isLoading}
             />
+            <div className="flex items-center gap-1 bg-gray-50 rounded-md px-2 border border-gray-300">
+              <input
+                type="number"
+                min={minCount}
+                max={maxCount}
+                value={suggestionCount}
+                onChange={(e) => setSuggestionCount(Math.min(maxCount, Math.max(minCount, parseInt(e.target.value) || defaultCount)))}
+                className="w-12 px-1 py-1 bg-transparent text-sm text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded"
+                placeholder={defaultCount.toString()}
+                disabled={maxCount === 0}
+              />
+              <span className="text-xs text-gray-500 whitespace-nowrap">
+                / {maxCount}
+              </span>
+            </div>
             <button
-              onClick={() => {
-                // The suggestion is now handled directly by the Select component
+              onClick={async () => {
+                if (selectedSuggestionType && suggestionCount > 0) {
+                  setIsLoading(true);
+                  setLastSuggestionType(selectedSuggestionType);
+                  try {
+                    await onSuggestNumbers(
+                      selectedSuggestionType as 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced',
+                      suggestionCount
+                    );
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }
               }}
               className={`p-2 rounded-lg transition-colors w-12 flex items-center justify-center ${
                 isLoading
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-green-400 hover:bg-green-600'
+                  : suggestionCount > 0
+                    ? 'bg-indigo-500 hover:bg-indigo-600'
+                    : 'bg-gray-300 cursor-not-allowed'
               } text-white`}
               title={labels[language].suggest_numbers}
-              disabled={isLoading}
+              disabled={isLoading || !selectedSuggestionType || suggestionCount <= 0}
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

@@ -36,6 +36,9 @@ export interface LanguageLabels {
   getting_suggestions: string;
   suggestions_loaded: string;
   suggestion_failed: string;
+  suggest_count: string;
+  will_suggest_count: string;
+  no_suggestion_needed: string;
   ai_prompt_copied: string;
   ai_prompt_failed: string;
   generation_failed: string;
@@ -105,6 +108,9 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     getting_suggestions: 'Getting suggestions...',
     suggestions_loaded: 'Suggestions loaded!',
     suggestion_failed: 'Suggestion failed!',
+    suggest_count: 'Suggest:',
+    will_suggest_count: 'Will suggest {count} numbers',
+    no_suggestion_needed: 'All numbers selected',
     ai_prompt_copied: 'AI prompt copied to clipboard!',
     ai_prompt_failed: 'AI prompt generation failed.',
     generation_failed: 'Generation failed. Please try again.',
@@ -170,6 +176,9 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     getting_suggestions: '正在獲取建議...',
     suggestions_loaded: '建議已加載！',
     suggestion_failed: '建議失敗！',
+    suggest_count: '建議：',
+    will_suggest_count: '將建議 {count} 個號碼',
+    no_suggestion_needed: '所有號碼已選擇',
     ai_prompt_copied: 'AI 提示已複製到剪貼簿！',
     ai_prompt_failed: 'AI 提示生成失敗。',
     generation_failed: '生成失敗，請重試。',
