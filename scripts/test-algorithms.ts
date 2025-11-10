@@ -20,45 +20,46 @@ import {
 } from '../src/lib/algorithms';
 import { DrawRecord } from '../src/lib/algorithms/types';
 
-// Mock database function for testing
-async function getMockDrawData(startDate: Date, endDate: Date): Promise<DrawRecord[]> {
-  console.log('Using mock data for testing');
+// Load real draw data from JSON file
+async function getRealDrawData(): Promise<DrawRecord[]> {
+  console.log('Loading real Mark Six data from JSON file');
   
-  // Generate mock draw data for testing
-  const mockDraws: DrawRecord[] = [];
-  const currentDate = new Date(startDate);
+  const fs = await import('fs');
+  const path = await import('path');
   
-  while (currentDate <= endDate) {
-    // Generate draws approximately twice a week (Mark Six schedule)
-    if (Math.random() < 0.3) { // 30% chance of having a draw on a given day
-      const winningNumbers = generateUniqueNumbers(6, 1, 49);
-      const specialNumber = generateUniqueNumbers(1, 1, 49, winningNumbers)[0];
-      
-      mockDraws.push({
-        winningNumbers,
-        specialNumber,
-        drawDate: new Date(currentDate)
-      });
-    }
+  const filePath = path.join(process.cwd(), 'docs/data/UfxCdaMarksixResults.json');
+  
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Real data file not found: ${filePath}`);
+  }
+  
+  const fileContent = fs.readFileSync(filePath, 'utf-8');
+  const data = JSON.parse(fileContent);
+  
+  const drawRecords: DrawRecord[] = [];
+  
+  for (const result of data.UfxCdaMarksixResults) {
+    // Parse winning numbers from "no" field (format: "7+16+26+31+47+49")
+    const winningNumbers = result.no.split('+').map((num: string) => parseInt(num.trim(), 10));
     
-    currentDate.setDate(currentDate.getDate() + 1);
+    // Parse special number from "sno" field
+    const specialNumber = parseInt(result.sno, 10);
+    
+    // Parse draw date
+    const drawDate = new Date(result.drawDate);
+    
+    drawRecords.push({
+      winningNumbers,
+      specialNumber,
+      drawDate
+    });
   }
   
-  return mockDraws;
-}
-
-function generateUniqueNumbers(count: number, min: number, max: number, exclude: number[] = []): number[] {
-  const numbers: number[] = [];
-  const availableNumbers = Array.from({ length: max - min + 1 }, (_, i) => i + min)
-    .filter(n => !exclude.includes(n));
+  // Sort by draw date ascending
+  drawRecords.sort((a, b) => a.drawDate!.getTime() - b.drawDate!.getTime());
   
-  for (let i = 0; i < count && availableNumbers.length > 0; i++) {
-    const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-    numbers.push(availableNumbers[randomIndex]);
-    availableNumbers.splice(randomIndex, 1);
-  }
-  
-  return numbers.sort((a, b) => a - b);
+  console.log(`Loaded ${drawRecords.length} real draw records`);
+  return drawRecords;
 }
 
 // Types for our test program
@@ -222,83 +223,28 @@ function generateCombinations(
     ? selectedNumbers[Math.floor(Math.random() * selectedNumbers.length)]
     : Math.floor(Math.random() * 49) + 1;
 
-  try {
-    if (generationAlgorithm.type === 'follow_on') {
-      const results = generateFollowOnCombinations(
-        combinationType.combinationCount,
-        selectedNumbers,
-        luckyNumber,
-        combinationType.isDouble,
-        historicalDraws,
-        lastDrawNumbers || []
-      );
-      return results.map(r => r.combination);
-    } else {
-      const results = generateClassicCombinations(
-        combinationType.combinationCount,
-        selectedNumbers,
-        luckyNumber,
-        combinationType.isDouble,
-        historicalDraws
-      );
-      return results.map(r => r.combination);
-    }
-  } catch (error) {
-    console.warn(`Error generating combinations for ${suggestionAlgorithm.name} + ${generationAlgorithm.name}:`, error);
-    // Fallback to basic generation
-    return generateBasicCombinations(
+  if (generationAlgorithm.type === 'follow_on') {
+    const results = generateFollowOnCombinations(
       combinationType.combinationCount,
       selectedNumbers,
       luckyNumber,
-      combinationType.isDouble
+      combinationType.isDouble,
+      historicalDraws,
+      lastDrawNumbers || []
     );
+    return results.map(r => r.combination);
+  } else {
+    const results = generateClassicCombinations(
+      combinationType.combinationCount,
+      selectedNumbers,
+      luckyNumber,
+      combinationType.isDouble,
+      historicalDraws
+    );
+    return results.map(r => r.combination);
   }
 }
 
-/**
- * Basic combination generation fallback
- */
-function generateBasicCombinations(
-  combinationCount: number,
-  selectedNumbers: number[],
-  luckyNumber: number,
-  isDouble: boolean
-): number[][] {
-  const combinations: number[][] = [];
-  
-  for (let i = 0; i < combinationCount; i++) {
-    const combination = [luckyNumber];
-    const numbersToPick = isDouble ? 6 : 5; // +1 for lucky number
-    
-    // Fill with selected numbers or random numbers
-    const availableNumbers = selectedNumbers.length > 0 
-      ? [...selectedNumbers].filter(n => n !== luckyNumber)
-      : Array.from({ length: 49 }, (_, i) => i + 1).filter(n => n !== luckyNumber);
-    
-    // Shuffle available numbers
-    const shuffled = [...availableNumbers].sort(() => Math.random() - 0.5);
-    
-    // Pick required numbers
-    for (let j = 0; j < numbersToPick && j < shuffled.length; j++) {
-      if (!combination.includes(shuffled[j])) {
-        combination.push(shuffled[j]);
-      }
-    }
-    
-    // If we need more numbers (shouldn't happen with 15 selected numbers)
-    while (combination.length < (isDouble ? 7 : 6)) {
-      const randomNum = Math.floor(Math.random() * 49) + 1;
-      if (!combination.includes(randomNum)) {
-        combination.push(randomNum);
-      }
-    }
-    
-    combination.sort((a, b) => a - b);
-    combinations.push(combination);
-  }
-  
-  return combinations;
-}
 
 // Mark Six Prize Categories
 const PRIZE_CATEGORIES: PrizeCategory[] = [
@@ -444,11 +390,16 @@ async function runTest(config: TestConfig): Promise<void> {
   console.log(`Test period: ${testYearStart.toDateString()} to ${testYearEnd.toDateString()}`);
   console.log(`History period: ${historyStart.toDateString()} to ${testYearStart.toDateString()}`);
   
-  // Get mock data for testing
-  console.log('\nGenerating mock draw data for testing...');
-  const drawRecords = await getMockDrawData(historyStart, testYearEnd);
+  // Get real data for testing
+  console.log('\nLoading real Mark Six data for testing...');
+  const allDrawRecords = await getRealDrawData();
   
-  console.log(`Generated ${drawRecords.length} mock draw records`);
+  // Filter draw records to match the requested date range
+  const drawRecords = allDrawRecords.filter(draw =>
+    draw.drawDate && draw.drawDate >= historyStart && draw.drawDate <= testYearEnd
+  );
+  
+  console.log(`Filtered ${drawRecords.length} draw records`);
   
   // Separate test draws from historical draws
   const testDraws = drawRecords.filter(draw => 
@@ -471,16 +422,19 @@ async function runTest(config: TestConfig): Promise<void> {
     process.exit(1);
   }
   
-  // Process each test draw (limit to first 5 for faster testing with all combinations)
+  // Select 5 random test draws from the specified year
   const allResults: TestResult[] = [];
-  const maxTestDraws = Math.min(5, testDraws.length);
   
-  console.log(`\nProcessing first ${maxTestDraws} test draws with all combinations...`);
-  for (let i = 0; i < maxTestDraws; i++) {
-    const testDraw = testDraws[i];
+  // Shuffle test draws and take first 5
+  const shuffledTestDraws = [...testDraws].sort(() => Math.random() - 0.5);
+  const selectedTestDraws = shuffledTestDraws.slice(0, Math.min(5, testDraws.length));
+  
+  console.log(`\nProcessing ${selectedTestDraws.length} randomly selected test draws with all combinations...`);
+  for (let i = 0; i < selectedTestDraws.length; i++) {
+    const testDraw = selectedTestDraws[i];
     const drawDate = testDraw.drawDate!;
     
-    console.log(`\nProcessing draw ${i + 1}/${maxTestDraws}: ${drawDate.toDateString()}`);
+    console.log(`\nProcessing draw ${i + 1}/${selectedTestDraws.length}: ${drawDate.toDateString()}`);
     
     // Get historical data up to this draw (excluding future draws)
     const historicalDataUpToDraw = drawRecords.filter(draw =>
@@ -499,43 +453,38 @@ async function runTest(config: TestConfig): Promise<void> {
     for (const combinationType of COMBINATION_TYPES) {
       for (const suggestionAlgorithm of SUGGESTION_ALGORITHMS) {
         for (const generationAlgorithm of GENERATION_ALGORITHMS) {
-          try {
-            // Get selected numbers based on suggestion algorithm
-            const selectedNumbers = getNumbersByAlgorithm(
-              suggestionAlgorithm,
-              historicalDataUpToDraw,
-              lastDrawNumbers
-            );
-            
-            // Generate combinations using generation algorithm
-            const generatedCombinations = generateCombinations(
-              combinationType,
-              selectedNumbers,
-              historicalDataUpToDraw,
-              suggestionAlgorithm,
-              generationAlgorithm,
-              lastDrawNumbers
-            );
-            
-            // Calculate prize results for all combinations
-            const prizeResults = calculatePrizeResults(generatedCombinations, testDraw);
-            
-            const result: TestResult = {
-              drawDate,
-              combinationType: combinationType.name,
-              suggestionAlgorithm: suggestionAlgorithm.name,
-              generationAlgorithm: generationAlgorithm.name,
-              selectedNumbers,
-              generatedCombinations,
-              actualDraw: testDraw,
-              prizeResults
-            };
-            
-            allResults.push(result);
-            
-          } catch (error) {
-            console.warn(`Error processing ${combinationType.name} with ${suggestionAlgorithm.name} + ${generationAlgorithm.name}:`, error);
-          }
+          // Get selected numbers based on suggestion algorithm
+          const selectedNumbers = getNumbersByAlgorithm(
+            suggestionAlgorithm,
+            historicalDataUpToDraw,
+            lastDrawNumbers
+          );
+          
+          // Generate combinations using generation algorithm
+          const generatedCombinations = generateCombinations(
+            combinationType,
+            selectedNumbers,
+            historicalDataUpToDraw,
+            suggestionAlgorithm,
+            generationAlgorithm,
+            lastDrawNumbers
+          );
+          
+          // Calculate prize results for all combinations
+          const prizeResults = calculatePrizeResults(generatedCombinations, testDraw);
+          
+          const result: TestResult = {
+            drawDate,
+            combinationType: combinationType.name,
+            suggestionAlgorithm: suggestionAlgorithm.name,
+            generationAlgorithm: generationAlgorithm.name,
+            selectedNumbers,
+            generatedCombinations,
+            actualDraw: testDraw,
+            prizeResults
+          };
+          
+          allResults.push(result);
         }
       }
     }
@@ -698,7 +647,7 @@ if (require.main === module) {
 }
 
 /**
- * Write detailed results to log file
+ * Write summary results to log file
  */
 async function writeResultsToFile(config: TestConfig, allResults: TestResult[], summaryStats: SummaryStats[]): Promise<void> {
   const fs = await import('fs');
@@ -711,31 +660,64 @@ async function writeResultsToFile(config: TestConfig, allResults: TestResult[], 
   }
   
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const filename = `test-results-${config.testYear}-${timestamp}.json`;
+  const filename = `test-results-${config.testYear}-${timestamp}.txt`;
   const filepath = path.join(logsDir, filename);
   
-  const output = {
-    config,
-    summary: {
-      totalTestDraws: allResults.length > 0 ? Math.max(...allResults.map(r => r.drawDate.getTime())) : 0,
-      totalCombinations: summaryStats.reduce((sum, stat) => sum + stat.totalCombinations, 0),
-      totalPrizeAmount: summaryStats.reduce((sum, stat) => sum + stat.totalPrizeAmount, 0),
-      summaryStats
-    },
-    detailedResults: allResults.map(result => ({
-      drawDate: result.drawDate.toISOString(),
-      combinationType: result.combinationType,
-      suggestionAlgorithm: result.suggestionAlgorithm,
-      generationAlgorithm: result.generationAlgorithm,
-      selectedNumbers: result.selectedNumbers,
-      generatedCombinations: result.generatedCombinations,
-      actualDraw: result.actualDraw,
-      prizeResults: result.prizeResults
-    }))
-  };
+  // Create summary text content
+  let summaryText = `MARK SIX ALGORITHM TEST RESULTS - ${config.testYear}\n`;
+  summaryText += '='.repeat(60) + '\n\n';
   
-  fs.writeFileSync(filepath, JSON.stringify(output, null, 2));
-  console.log(`\nDetailed results written to: ${filepath}`);
+  summaryText += `Test Configuration:\n`;
+  summaryText += `- Test Year: ${config.testYear}\n`;
+  summaryText += `- Years of History: ${config.yearsOfHistory}\n`;
+  summaryText += `- Total Test Draws: ${allResults.length > 0 ? Math.max(...allResults.map(r => r.drawDate.getTime())) : 0}\n`;
+  summaryText += `- Total Combinations Tested: ${summaryStats.reduce((sum, stat) => sum + stat.totalCombinations, 0)}\n`;
+  summaryText += `- Total Prize Amount: HK$${summaryStats.reduce((sum, stat) => sum + stat.totalPrizeAmount, 0).toLocaleString()}\n\n`;
+  
+  summaryText += 'SUMMARY RESULTS - PRIZE DISTRIBUTION\n';
+  summaryText += '='.repeat(60) + '\n\n';
+  
+  for (const stats of summaryStats) {
+    summaryText += `${stats.combinationType} - ${stats.suggestionAlgorithm} + ${stats.generationAlgorithm}\n`;
+    summaryText += `  Total Draws: ${stats.totalDraws}\n`;
+    summaryText += `  Total Combinations: ${stats.totalCombinations}\n`;
+    summaryText += `  Hit Rate: ${stats.hitRate.toFixed(2)}%\n`;
+    summaryText += `  Total Prize Amount: HK$${stats.totalPrizeAmount.toLocaleString()}\n`;
+    summaryText += `  Average Prize per Combination: HK$${stats.averagePrizePerCombination.toFixed(2)}\n`;
+    summaryText += '  Prize Distribution:\n';
+    summaryText += `    First Prize: ${stats.prizeDistribution.firstPrize}\n`;
+    summaryText += `    Second Prize: ${stats.prizeDistribution.secondPrize}\n`;
+    summaryText += `    Third Prize: ${stats.prizeDistribution.thirdPrize}\n`;
+    summaryText += `    Fourth Prize: ${stats.prizeDistribution.fourthPrize} (HK$9,600 each)\n`;
+    summaryText += `    Fifth Prize: ${stats.prizeDistribution.fifthPrize} (HK$640 each)\n`;
+    summaryText += `    Sixth Prize: ${stats.prizeDistribution.sixthPrize} (HK$320 each)\n`;
+    summaryText += `    Seventh Prize: ${stats.prizeDistribution.seventhPrize} (HK$40 each)\n\n`;
+  }
+  
+  // Add top performing combinations
+  const sortedByPrize = [...summaryStats].sort((a, b) => b.totalPrizeAmount - a.totalPrizeAmount);
+  const sortedByHitRate = [...summaryStats].sort((a, b) => b.hitRate - a.hitRate);
+  
+  summaryText += 'TOP PERFORMING COMBINATIONS BY TOTAL PRIZE\n';
+  summaryText += '='.repeat(60) + '\n\n';
+  
+  summaryText += 'Top 10 by Total Prize Amount:\n';
+  for (let i = 0; i < Math.min(10, sortedByPrize.length); i++) {
+    const stat = sortedByPrize[i];
+    summaryText += `${i + 1}. ${stat.combinationType} - ${stat.suggestionAlgorithm} + ${stat.generationAlgorithm}: HK$${stat.totalPrizeAmount.toLocaleString()}\n`;
+  }
+  
+  summaryText += '\nTOP PERFORMING COMBINATIONS BY HIT RATE\n';
+  summaryText += '='.repeat(60) + '\n\n';
+  
+  summaryText += 'Top 10 by Hit Rate:\n';
+  for (let i = 0; i < Math.min(10, sortedByHitRate.length); i++) {
+    const stat = sortedByHitRate[i];
+    summaryText += `${i + 1}. ${stat.combinationType} - ${stat.suggestionAlgorithm} + ${stat.generationAlgorithm}: ${stat.hitRate.toFixed(2)}%\n`;
+  }
+  
+  fs.writeFileSync(filepath, summaryText);
+  console.log(`\nSummary results written to: ${filepath}`);
 }
 
 export { runTest };
