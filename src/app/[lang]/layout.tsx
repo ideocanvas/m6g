@@ -21,9 +21,9 @@ export const metadata: Metadata = {
 
 interface RootLayoutProps {
   children: React.ReactNode;
-  params: {
+  params: Promise<{
     lang: LanguageCode;
-  };
+  }>;
 }
 
 export default async function RootLayout({
@@ -32,9 +32,9 @@ export default async function RootLayout({
 }: Readonly<RootLayoutProps>) {
   const cookieStore = await cookies();
   const languageCookie = cookieStore.get('mark6-language');
-  
+
   // Use cookie language if available, otherwise use URL param
-  const htmlLang = languageCookie?.value === 'zh-TW' ? 'zh-TW' : params.lang;
+  const htmlLang = languageCookie?.value === 'zh-TW' ? 'zh-TW' : (await params).lang;
   console.log("htmlLang", htmlLang);
   return (
     <html lang={htmlLang}>
