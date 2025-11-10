@@ -50,7 +50,7 @@ const HKJC_GRAPHQL_QUERY = `
       xDrawnNo
     }
   }
-  
+
   query marksixResult($lastNDraw: Int, $startDate: String, $endDate: String, $drawType: LotteryDrawType) {
     lotteryDraws(
       lastNDraw: $lastNDraw
@@ -107,15 +107,25 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
+    console.log(`GET /api/draws - limit: ${limit}, startDate: ${startDate}, endDate: ${endDate}`);
+
     let whereClause = {};
     if (startDate || endDate) {
+      // Convert YYYY-MM-DD to DD/MM/YYYY format for dateText comparison
+      const convertToDateTextFormat = (dateStr: string) => {
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}/${year}`;
+      };
+
       whereClause = {
-        drawDate: {
-          ...(startDate && { gte: new Date(startDate) }),
-          ...(endDate && { lte: new Date(endDate) })
+        dateText: {
+          ...(startDate && { gte: convertToDateTextFormat(startDate) }),
+          ...(endDate && { lte: convertToDateTextFormat(endDate) })
         }
       };
     }
+
+    console.log('Query where clause:', JSON.stringify(whereClause));
 
     const data = await prisma.markSixResult.findMany({
       where: whereClause,
@@ -123,10 +133,24 @@ export async function GET(request: NextRequest) {
       take: limit
     });
 
-    return NextResponse.json({ data });
+    console.log(`Found ${data.length} records`);
+
+    return NextResponse.json({
+      data,
+      count: data.length,
+      query: {
+        limit,
+        startDate,
+        endDate,
+        whereClause
+      }
+    });
   } catch (error) {
     console.error('Unexpected error in GET /api/draws:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 

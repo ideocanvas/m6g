@@ -72,7 +72,7 @@ export interface NumberSelectionProps {
   onGenerationMethodChange: (method: 'v1' | 'v2') => void;
   onClearSelection: () => void;
   onSelectAll: () => void;
-  onSuggestNumbers: (type: 'hot' | 'cold' | 'follow_on') => void;
+  onSuggestNumbers: (type: 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced') => void;
   onGenerate: () => void;
   requiredCount: number;
 }

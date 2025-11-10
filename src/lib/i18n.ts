@@ -30,7 +30,11 @@ export interface LanguageLabels {
   suggest_hot_follow_on: string;
   suggest_most_frequent: string;
   suggest_least_frequent: string;
+  suggest_random: string;
+  suggest_balanced: string;
   suggest_numbers: string;
+  getting_suggestions: string;
+  suggestions_loaded: string;
   suggestion_failed: string;
   ai_prompt_copied: string;
   ai_prompt_failed: string;
@@ -54,6 +58,13 @@ export interface LanguageLabels {
   share: string;
   combinations_copied: string;
   share_link_copied_to_clipboard: string;
+  today: string;
+  yesterday: string;
+  last_week: string;
+  last_month: string;
+  select_date: string;
+  calendar: string;
+  quick_select: string;
 }
 
 export type LanguageCode = 'en' | 'zh-TW';
@@ -88,7 +99,11 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     suggest_hot_follow_on: 'Suggest: Hot Follow-on',
     suggest_most_frequent: 'Suggest: Most Frequent',
     suggest_least_frequent: 'Suggest: Least Frequent',
+    suggest_random: 'Suggest: Random',
+    suggest_balanced: 'Suggest: Balanced',
     suggest_numbers: 'Suggest Numbers',
+    getting_suggestions: 'Getting suggestions...',
+    suggestions_loaded: 'Suggestions loaded!',
     suggestion_failed: 'Suggestion failed!',
     ai_prompt_copied: 'AI prompt copied to clipboard!',
     ai_prompt_failed: 'AI prompt generation failed.',
@@ -111,7 +126,14 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     copy_combinations: 'Copy Combinations',
     share: 'Share',
     combinations_copied: 'Combinations copied to clipboard!',
-    share_link_copied_to_clipboard: 'Share link copied to clipboard!'
+    share_link_copied_to_clipboard: 'Share link copied to clipboard!',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    last_week: 'Last Week',
+    last_month: 'Last Month',
+    select_date: 'Select Date',
+    calendar: 'Calendar',
+    quick_select: 'Quick Select'
   },
   'zh-TW': {
     title: '六合彩生成器',
@@ -142,7 +164,11 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     suggest_hot_follow_on: '建議：熱門跟隨',
     suggest_most_frequent: '建議：最頻繁',
     suggest_least_frequent: '建議：最冷門',
+    suggest_random: '建議：隨機',
+    suggest_balanced: '建議：平衡',
     suggest_numbers: '建議號碼',
+    getting_suggestions: '正在獲取建議...',
+    suggestions_loaded: '建議已加載！',
     suggestion_failed: '建議失敗！',
     ai_prompt_copied: 'AI 提示已複製到剪貼簿！',
     ai_prompt_failed: 'AI 提示生成失敗。',
@@ -165,7 +191,14 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     copy_combinations: '複製組合',
     share: '分享',
     combinations_copied: '組合已複製到剪貼簿！',
-    share_link_copied_to_clipboard: '分享連結已複製到剪貼簿！'
+    share_link_copied_to_clipboard: '分享連結已複製到剪貼簿！',
+    today: '今天',
+    yesterday: '昨天',
+    last_week: '上週',
+    last_month: '上個月',
+    select_date: '選擇日期',
+    calendar: '日曆',
+    quick_select: '快速選擇'
   }
 };
 
@@ -179,7 +212,7 @@ export function replacePlaceholders(template: string, params: Record<string, str
 // Language detection and management
 export function getBrowserLanguage(): LanguageCode {
   if (typeof window === 'undefined') return 'en';
-  
+
   const browserLang = navigator.language || (navigator.languages?.[0] || 'en');
   if (browserLang.startsWith('zh')) {
     return 'zh-TW';
@@ -195,7 +228,7 @@ export function saveLanguagePreference(lang: LanguageCode) {
 
 export function getSavedLanguagePreference(): LanguageCode {
   if (typeof window === 'undefined') return 'en';
-  
+
   // Check URL first for language
   const pathname = window.location.pathname;
   if (pathname.startsWith('/zh-TW')) {
@@ -204,7 +237,7 @@ export function getSavedLanguagePreference(): LanguageCode {
   if (pathname.startsWith('/en')) {
     return 'en';
   }
-  
+
   // Fall back to localStorage
   const saved = localStorage.getItem('mark6-language');
   if (saved === 'en' || saved === 'zh-TW') {

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ResultsPanelProps, Combination } from '@/types/mark6';
 import NumberBall from './NumberBall';
+import DatePicker from './DatePicker';
 import { labels } from '@/lib/i18n';
 
 export default function ResultsPanel({
@@ -52,7 +53,7 @@ export default function ResultsPanel({
         <div className="flex items-center gap-1">
           {numbers.map((number, idx) => {
             let highlight: 'winning' | 'special' | 'none' = 'none';
-            
+
             if (drawResults) {
               if (drawResults.winningNumbers.includes(number)) {
                 highlight = 'winning';
@@ -113,7 +114,7 @@ export default function ResultsPanel({
             highlight="special"
           />
         </div>
-        
+
         {combinations.length > 0 && (
           <div className="text-sm text-gray-600">
             <p>{labels[language].matching_numbers_highlighted}</p>
@@ -149,9 +150,9 @@ export default function ResultsPanel({
                 {combinations.length} {labels[language].combinations_generated}
               </p>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto">
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center my-3">
                 {combinations.map((combination, index) =>
                   renderCombination(combination, index)
                 )}
@@ -178,12 +179,13 @@ export default function ResultsPanel({
             {labels[language].check_draw_results}
           </label>
           <div className="flex gap-2">
-            <input
-              type="date"
+            <DatePicker
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              max={formatDateForInput(new Date())}
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onChange={setSelectedDate}
+              maxDate={formatDateForInput(new Date())}
+              language={language}
+              placeholder={labels[language].select_draw_date}
+              className="flex-1"
             />
             <button
               onClick={handleCheckDrawResults}

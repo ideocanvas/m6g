@@ -27,9 +27,15 @@ export async function GET(request: NextRequest) {
       case 'cold':
         result = await getHistoricalFrequency(drawCount, 'cold');
         break;
+      case 'random':
+        result = generateRandomNumbers();
+        break;
+      case 'balanced':
+        result = generateBalancedNumbers();
+        break;
       default:
         return NextResponse.json(
-          { error: 'Invalid analysis type. Use: follow_on, hot, or cold' },
+          { error: 'Invalid analysis type. Use: follow_on, hot, cold, random, or balanced' },
           { status: 400 }
         );
     }
@@ -115,7 +121,7 @@ async function getFollowOnNumbers(daysOfHistory: number): Promise<Array<{ number
 
   // Calculate weighted pool based on last draw numbers
   const weightedPool = new Map<number, number>();
-  
+
   for (const num of lastDrawNumbers) {
     if (followOnMap.has(num)) {
       const followers = followOnMap.get(num)!;
@@ -149,12 +155,12 @@ async function getHistoricalFrequency(drawCount: number, analysisType: 'hot' | '
 
   // Count frequency of each number
   const frequencyMap = new Map<number, number>();
-  
+
   // Initialize all numbers 1-49 with frequency 0
   for (let i = 1; i <= 49; i++) {
     frequencyMap.set(i, 0);
   }
-  
+
   for (const draw of recentDraws) {
     // Count winning numbers
     for (const num of draw.winningNumbers) {
@@ -175,4 +181,52 @@ async function getHistoricalFrequency(drawCount: number, analysisType: 'hot' | '
   }
 
   return frequencyArray;
+}
+
+/**
+ * Generate random numbers (1-49)
+ */
+function generateRandomNumbers(): Array<{ number: number; random: number }> {
+  const allNumbers = Array.from({ length: 49 }, (_, i) => i + 1);
+  const shuffled = [...allNumbers].sort(() => Math.random() - 0.5);
+
+  return shuffled.map((number) => ({
+    number,
+    random: Math.random()
+  }));
+}
+
+/**
+ * Generate balanced numbers across different ranges
+ */
+function generateBalancedNumbers(): Array<{ number: number; range: string }> {
+  const ranges = [
+    { start: 1, end: 10, name: '1-10' },
+    { start: 11, end: 20, name: '11-20' },
+    { start: 21, end: 30, name: '21-30' },
+    { start: 31, end: 40, name: '31-40' },
+    { start: 41, end: 49, name: '41-49' },
+  ];
+
+  const balancedNumbers: Array<{ number: number; range: string }> = [];
+
+  for (const range of ranges) {
+    const rangeNumbers = Array.from(
+      { length: range.end - range.start + 1 },
+      (_, i) => range.start + i
+    );
+    const shuffled = [...rangeNumbers].sort(() => Math.random() - 0.5);
+
+    // Take 2-3 numbers from each range for balanced distribution
+    const numbersToTake = Math.ceil(49 / ranges.length);
+    balancedNumbers.push(
+      ...shuffled.slice(0, numbersToTake).map(number => ({
+        number,
+        range: range.name
+      }))
+    );
+  }
+
+  // Sort by number for consistent output
+  return balancedNumbers.sort((a, b) => a.number - b.number);
 }

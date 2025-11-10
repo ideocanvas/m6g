@@ -1,19 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import NumberSelection from './NumberSelection';
 import ResultsPanel from './ResultsPanel';
 import { Combination, DrawResult } from '@/types/mark6';
-import { labels, LanguageCode, saveLanguagePreference } from '@/lib/i18n';
-import { setLanguageCookie } from '@/lib/cookies';
+import { labels, LanguageCode } from '@/lib/i18n';
 
 interface MarkSixGeneratorProps {
   language: LanguageCode;
 }
 
 export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
-  const router = useRouter();
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [luckyNumber, setLuckyNumber] = useState<number | null>(null);
   const [combinations, setCombinations] = useState<Combination[]>([]);
@@ -52,12 +49,6 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
     setSelectedNumbers(allNumbers);
   };
 
-  // Handle language change with URL navigation
-  const handleLanguageChange = (newLanguage: LanguageCode) => {
-    saveLanguagePreference(newLanguage);
-    setLanguageCookie(newLanguage);
-    router.push(`/${newLanguage}`);
-  };
 
   const generateCombinations = async () => {
     if (!luckyNumber) {
@@ -97,21 +88,64 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   };
 
   // Get number suggestions
-  const suggestNumbers = async (type: 'hot' | 'cold' | 'follow_on') => {
+  const suggestNumbers = async (type: 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced') => {
     try {
-      const response = await fetch(`/api/analysis?type=${type}&drawCount=100`);
-      if (!response.ok) {
-        throw new Error('Failed to get suggestions');
+      let suggestedNumbers: number[] = [];
+
+      if (type === 'random' || type === 'balanced') {
+        // Generate random or balanced numbers locally
+        suggestedNumbers = generateLocalSuggestions(type, getRequiredCount());
+      } else {
+        // Use API for historical analysis
+        const response = await fetch(`/api/analysis?type=${type}&drawCount=100`);
+        if (!response.ok) {
+          throw new Error('Failed to get suggestions');
+        }
+
+        const data = await response.json() as { data: Array<{ number: number }> };
+        suggestedNumbers = data.data.slice(0, getRequiredCount()).map((item: { number: number }) => item.number);
       }
 
-      const data = await response.json() as { data: Array<{ number: number }> };
-      const suggestedNumbers = data.data.slice(0, getRequiredCount()).map((item: { number: number }) => item.number);
-      
       // Clear current selection and set suggested numbers
       setSelectedNumbers(suggestedNumbers);
     } catch (error) {
       console.error('Error getting suggestions:', error);
-      alert('Failed to get number suggestions. Please try again.');
+      alert(labels[language].suggestion_failed);
+    }
+  };
+
+  // Generate local suggestions for random and balanced types
+  const generateLocalSuggestions = (type: 'random' | 'balanced', count: number): number[] => {
+    const allNumbers = Array.from({ length: 49 }, (_, i) => i + 1);
+
+    if (type === 'random') {
+      // Simple random selection
+      const shuffled = [...allNumbers].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, count).sort((a, b) => a - b);
+    } else {
+      // Balanced selection - ensure numbers from different ranges
+      const ranges = [
+        { start: 1, end: 10 },   // 1-10
+        { start: 11, end: 20 },  // 11-20
+        { start: 21, end: 30 },  // 21-30
+        { start: 31, end: 40 },  // 31-40
+        { start: 41, end: 49 },  // 41-49
+      ];
+
+      const balancedNumbers: number[] = [];
+      const numbersPerRange = Math.ceil(count / ranges.length);
+
+      for (const range of ranges) {
+        const rangeNumbers = Array.from(
+          { length: range.end - range.start + 1 },
+          (_, i) => range.start + i
+        );
+        const shuffled = [...rangeNumbers].sort(() => Math.random() - 0.5);
+        balancedNumbers.push(...shuffled.slice(0, numbersPerRange));
+      }
+
+      // Take exactly the required count and sort
+      return balancedNumbers.slice(0, count).sort((a, b) => a - b);
     }
   };
 
@@ -142,18 +176,6 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
 
   return (
     <div className="flex flex-col md:flex-row w-full max-w-7xl mx-auto p-4 gap-6 min-h-screen">
-      {/* Language Selector */}
-      <div className="absolute top-4 right-4 z-10">
-        <select
-          value={language}
-          onChange={(e) => handleLanguageChange(e.target.value as LanguageCode)}
-          className="border border-gray-300 rounded-lg px-3 py-2 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="en">English</option>
-          <option value="zh-TW">繁體中文</option>
-        </select>
-      </div>
-
       {/* Left Panel: Generator Controls */}
       <div className="w-full md:w-1/2">
         <NumberSelection
