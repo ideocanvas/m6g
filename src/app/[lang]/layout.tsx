@@ -30,16 +30,14 @@ export default async function RootLayout({
   children,
   params,
 }: Readonly<RootLayoutProps>) {
-  const cookieStore = await cookies();
-  const languageCookie = cookieStore.get('mark6-language');
-
   // Use cookie language if available, otherwise use URL param
-  const htmlLang = languageCookie?.value === 'zh-TW' ? 'zh-TW' : (await params).lang;
+  const htmlLang =  (await params).lang === 'en' ? 'en' : 'zh-TW';
   console.log("htmlLang", htmlLang);
   return (
     <html lang={htmlLang}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
         {children}
       </body>

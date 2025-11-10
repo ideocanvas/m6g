@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NumberSelectionProps } from '@/types/mark6';
 import NumberBall from './NumberBall';
 import Select from './Select';
@@ -32,12 +32,17 @@ export default function NumberSelection({
   const [selectedSuggestionType, setSelectedSuggestionType] = useState<string>('follow_on');
 
   // Calculate suggestion limits based on combination option
-  // For simplicity, treat x1 and x2 equally, use x1 limit
-  // Default is 6, min is 1, max is one third of required count
+  // Use the same calculation as requiredCount: 6 + Math.ceil(combinationCount / 2)
+  // Max is one third of total slots (combinationCount × 6)
   const getSuggestionLimits = () => {
-    const defaultCount = 6;
     const minCount = 1;
-    const maxCount = Math.floor(requiredCount / 3);
+
+    // Calculate total number slots: combinationCount × 6
+    const totalSlots = combinationCount * 6;
+    const maxCount = Math.floor(totalSlots / 3);
+
+    // Default should be the required count, not the max
+    const defaultCount = requiredCount;
 
     return { defaultCount, minCount, maxCount };
   };
@@ -45,15 +50,27 @@ export default function NumberSelection({
   const { defaultCount, minCount, maxCount } = getSuggestionLimits();
   const [suggestionCount, setSuggestionCount] = useState<number>(defaultCount);
 
+  // Update suggestion count when combination changes
+  useEffect(() => {
+    setSuggestionCount(defaultCount);
+  }, [defaultCount]);
+
+  // Update suggestion count when it exceeds maxCount
+  useEffect(() => {
+    if (suggestionCount > maxCount && maxCount > 0) {
+      setSuggestionCount(maxCount);
+    }
+  }, [maxCount, suggestionCount]);
+
   const combinationOptions = [
-    { value: 4, label: '4 x 1' },
-    { value: 4, label: '4 x 2', double: true },
-    { value: 8, label: '8 x 1' },
-    { value: 8, label: '8 x 2', double: true },
-    { value: 12, label: '12 x 1' },
-    { value: 12, label: '12 x 2', double: true },
-    { value: 17, label: '17 x 1' },
-    { value: 17, label: '17 x 2', double: true },
+    { id: '4-1', value: 4, label: '4 x 1', double: false },
+    { id: '4-2', value: 4, label: '4 x 2', double: true },
+    { id: '8-1', value: 8, label: '8 x 1', double: false },
+    { id: '8-2', value: 8, label: '8 x 2', double: true },
+    { id: '12-1', value: 12, label: '12 x 1', double: false },
+    { id: '12-2', value: 12, label: '12 x 2', double: true },
+    { id: '17-1', value: 17, label: '17 x 1', double: false },
+    { id: '17-2', value: 17, label: '17 x 2', double: true },
   ];
 
   const suggestionOptions = [
@@ -64,30 +81,17 @@ export default function NumberSelection({
     { value: 'balanced', label: labels[language].suggest_balanced },
   ];
 
-  // Calculate maximum numbers that can be suggested
-  const getMaxSuggestionCount = () => {
-    const currentSelectedCount = selectedNumbers.length;
-    const remainingCount = requiredCount - currentSelectedCount;
-    return Math.max(0, remainingCount);
-  };
-
-  // Update suggestion count when combination or selection changes
-  const maxSuggestionCount = getMaxSuggestionCount();
-  if (suggestionCount > maxSuggestionCount && maxSuggestionCount > 0) {
-    setSuggestionCount(maxSuggestionCount);
-  }
-
   const handleCombinationChange = (value: string) => {
-    const option = combinationOptions.find(opt => opt.label === value);
+    const option = combinationOptions.find(opt => opt.id === value);
     if (option) {
       onCombinationCountChange(option.value);
-      onIsDoubleChange(option.double || false);
+      onIsDoubleChange(option.double);
     }
   };
 
-  const currentCombinationLabel = combinationOptions.find(
+  const currentCombinationId = combinationOptions.find(
     opt => opt.value === combinationCount && opt.double === isDouble
-  )?.label || '4 x 1';
+  )?.id || '4-1';
 
   // Generate AI prompt
   const generateAIPrompt = async (promptType: 'standard' | 'qimen') => {
@@ -221,7 +225,7 @@ export default function NumberSelection({
         </div>
 
         <div className="text-center text-sm text-gray-600">
-          {replacePlaceholders(labels[language].selected_balls, { count: selectedNumbers.length })} / {requiredCount} {labels[language].required}
+          {labels[language].selected_balls} {selectedNumbers.length} / {requiredCount} {labels[language].required}
           {selectedNumbers.length > requiredCount && (
             <span className="text-orange-500 ml-1">
               ({selectedNumbers.length - requiredCount} extra)
@@ -239,10 +243,10 @@ export default function NumberSelection({
           </label>
           <Select
             options={combinationOptions.map(option => ({
-              value: option.label,
+              value: option.id,
               label: option.label,
             }))}
-            value={currentCombinationLabel}
+            value={currentCombinationId}
             onChange={(value) => handleCombinationChange(value as string)}
             placeholder={labels[language].number_of_combinations}
           />
@@ -280,6 +284,7 @@ export default function NumberSelection({
               }))}
               value={selectedSuggestionType}
               onChange={(value) => {
+                console.log("selectedSuggestionType", selectedSuggestionType);
                 setSelectedSuggestionType(value as string);
                 // Don't auto-suggest when user changes the option
               }}
@@ -293,7 +298,10 @@ export default function NumberSelection({
                 min={minCount}
                 max={maxCount}
                 value={suggestionCount}
-                onChange={(e) => setSuggestionCount(Math.min(maxCount, Math.max(minCount, parseInt(e.target.value) || defaultCount)))}
+                onChange={(e) => {
+                  const newValue = parseInt(e.target.value) || defaultCount;
+                  setSuggestionCount(Math.min(maxCount, Math.max(minCount, newValue)));
+                }}
                 className="w-12 px-1 py-1 bg-transparent text-sm text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded"
                 placeholder={defaultCount.toString()}
                 disabled={maxCount === 0}
