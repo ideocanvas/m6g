@@ -1,12 +1,7 @@
 // Mark Six Number Generation Algorithms
 // Implementation based on the reference MarkSizAPI.js
 
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { prisma } from '@/lib/prisma';
 
 // These interfaces are kept for future reference but currently unused
 // interface DrawResult {
@@ -60,20 +55,23 @@ export async function generateV1Combinations(
     const daysOfHistory = 369;
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOfHistory);
-    
-    const { data: pastResults, error } = await supabase
-      .from('mark6_results')
-      .select('winning_numbers, special_number')
-      .gte('draw_date', cutoffDate.toISOString())
-      .order('draw_date', { ascending: true });
 
-    if (error) {
-      throw new Error(`Failed to fetch historical data: ${error.message}`);
-    }
+    const pastResults = await prisma.markSixResult.findMany({
+      select: {
+        winningNumbers: true,
+        specialNumber: true
+      },
+      where: {
+        drawDate: {
+          gte: cutoffDate
+        }
+      },
+      orderBy: { drawDate: 'asc' }
+    });
 
     const parsedResults = pastResults.map(r => ({
-      nos: r.winning_numbers,
-      sno: r.special_number
+      nos: r.winningNumbers,
+      sno: r.specialNumber
     }));
 
     let bestCandidate: number[][] | null = null;
@@ -158,21 +156,28 @@ export async function generateV2Combinations(
     // Get the last draw (7 days ago as per reference)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const { data: lastDrawList } = await supabase
-      .from('mark6_results')
-      .select('winning_numbers, special_number')
-      .gte('draw_date', sevenDaysAgo.toISOString())
-      .order('draw_date', { ascending: false })
-      .limit(1);
+
+    const lastDrawList = await prisma.markSixResult.findMany({
+      select: {
+        winningNumbers: true,
+        specialNumber: true
+      },
+      where: {
+        drawDate: {
+          gte: sevenDaysAgo
+        }
+      },
+      orderBy: { drawDate: 'desc' },
+      take: 1
+    });
 
     if (!lastDrawList || lastDrawList.length === 0) {
       throw new Error("Could not fetch the last Mark Six result.");
     }
 
     const lastDraw = lastDrawList[0];
-    const lastDrawNumbers = [...lastDraw.winning_numbers, lastDraw.special_number];
-    
+    const lastDrawNumbers = [...lastDraw.winningNumbers, lastDraw.specialNumber];
+
     if (DEBUG) console.log(`[DEBUG] Using last draw numbers as trigger: [${lastDrawNumbers.join(', ')}]`);
 
     // Create weighted pool based on follow-on patterns
@@ -185,7 +190,7 @@ export async function generateV2Combinations(
         });
       }
     }
-    
+
     if (DEBUG) {
       const sortedWeightedPool = Array.from(weightedPool.entries()).sort((a, b) => b[1] - a[1]);
       console.log(`[DEBUG] Top 15 numbers in weighted pool (Number => Weight):`);
@@ -252,10 +257,10 @@ export async function generateV2Combinations(
         }
         attempts++;
       }
-      
+
       const finalCombination = Array.from(combination);
       finalCombination.sort((a, b) => a - b);
-      
+
       if (finalCombination.length === combinationLength) {
         generatedCombinations.push(finalCombination);
         if (DEBUG) console.log(`[SUCCESS] Final Combination #${i + 1}: [${finalCombination.join(', ')}]`);
@@ -356,7 +361,7 @@ function checkScore(candidate: number[][], parsedResults: Array<{ nos: number[];
   const maxFrequency = Math.max(...Object.values(numberFrequency));
 
   for (const combination of candidate) {
-    frequenceFactor += combination.reduce((acc, number) => 
+    frequenceFactor += combination.reduce((acc, number) =>
       acc + (1 - (numberFrequency[number] / maxFrequency)), 0) / combination.length;
   }
 
@@ -395,15 +400,19 @@ async function analyzeFollowOnPatterns(daysOfHistory: number): Promise<Map<numbe
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysOfHistory);
 
-  const { data: historicalDraws, error } = await supabase
-    .from('mark6_results')
-    .select('draw_date, winning_numbers, special_number')
-    .gte('draw_date', cutoffDate.toISOString())
-    .order('draw_date', { ascending: true });
-
-  if (error) {
-    throw new Error(`Failed to fetch historical draws: ${error.message}`);
-  }
+  const historicalDraws = await prisma.markSixResult.findMany({
+    select: {
+      drawDate: true,
+      winningNumbers: true,
+      specialNumber: true
+    },
+    where: {
+      drawDate: {
+        gte: cutoffDate
+      }
+    },
+    orderBy: { drawDate: 'asc' }
+  });
 
   const followOnMap = new Map<number, Map<number, number>>();
 
@@ -411,8 +420,8 @@ async function analyzeFollowOnPatterns(daysOfHistory: number): Promise<Map<numbe
     const currentDraw = historicalDraws[i];
     const nextDraw = historicalDraws[i + 1];
 
-    const currentNumbers = [...currentDraw.winning_numbers, currentDraw.special_number];
-    const nextNumbers = [...nextDraw.winning_numbers, nextDraw.special_number];
+    const currentNumbers = [...currentDraw.winningNumbers, currentDraw.specialNumber];
+    const nextNumbers = [...nextDraw.winningNumbers, nextDraw.specialNumber];
 
     for (const currentNum of currentNumbers) {
       if (!followOnMap.has(currentNum)) {

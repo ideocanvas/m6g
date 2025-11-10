@@ -12,8 +12,8 @@ async function setupPrisma() {
   console.log('1. Create a PostgreSQL database (you can use:');
   console.log('   - Prisma Data Platform (recommended)');
   console.log('   - Railway.app');
-  console.log('   - Supabase (PostgreSQL)');
   console.log('   - Neon.tech');
+  console.log('   - Any PostgreSQL-compatible database');
   console.log('   - Your own PostgreSQL server\n');
 
   console.log('Step 2: Configure Environment Variables');

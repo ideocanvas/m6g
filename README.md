@@ -1,6 +1,6 @@
 # Mark Six Lottery Application
 
-A modern Mark Six lottery application built with Next.js, TypeScript, and Supabase. This application provides historical draw results, number generation algorithms, and statistical analysis for the Hong Kong Mark Six lottery.
+A modern Mark Six lottery application built with Next.js, TypeScript, and Prisma. This application provides historical draw results, number generation algorithms, and statistical analysis for the Hong Kong Mark Six lottery.
 
 ## Features
 
@@ -25,7 +25,7 @@ A modern Mark Six lottery application built with Next.js, TypeScript, and Supaba
 
 - Node.js 18+
 - pnpm package manager
-- PostgreSQL database (Prisma Data Platform, Railway, Supabase, Neon, etc.)
+- PostgreSQL database (Prisma Data Platform, Railway, Neon, etc.)
 
 ### Installation
 
