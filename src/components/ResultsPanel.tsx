@@ -6,6 +6,7 @@ import NumberBall from './NumberBall';
 import DatePicker from './DatePicker';
 import Select from './Select';
 import { labels } from '@/lib/i18n';
+import { useMobile } from '@/hooks/useMobile';
 
 export default function ResultsPanel({
   combinations,
@@ -19,6 +20,7 @@ export default function ResultsPanel({
 }: ResultsPanelProps) {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedGenerationId, setSelectedGenerationId] = useState<string>('');
+  const isMobile = useMobile();
 
   const formatDateForInput = (date: Date) => {
     return date.toISOString().split('T')[0];
@@ -74,8 +76,8 @@ export default function ResultsPanel({
         ]
       : numbers;
 
-    // Use smaller balls for double combinations on mobile
-    const ballSize = isDouble ? 'sm' : 'md';
+    // Use smaller balls for double combinations only on mobile
+    const ballSize = isDouble && isMobile ? 'sm' : 'md';
 
     return (
       <div key={combination.id} className="flex items-center gap-2 mb-3">
@@ -148,6 +150,9 @@ export default function ResultsPanel({
     // Get all unique numbers from combinations
     const allCombinationNumbers = getAllUniqueNumbersFromCombinations();
 
+    // Use smaller balls for draw results on mobile
+    const drawResultBallSize = isMobile ? 'sm' : 'lg';
+
     return (
       <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
         <h3 className="text-lg font-semibold text-gray-800 mb-3">
@@ -161,7 +166,7 @@ export default function ResultsPanel({
               <NumberBall
                 key={`winning-${index}`}
                 number={number}
-                size="lg"
+                size={drawResultBallSize}
                 highlight={shouldHighlight ? 'winning' : 'none'}
               />
             );
@@ -169,7 +174,7 @@ export default function ResultsPanel({
           <span className="mx-2 text-xl font-bold text-gray-600">+</span>
           <NumberBall
             number={drawResults.specialNumber}
-            size="lg"
+            size={drawResultBallSize}
             highlight={allCombinationNumbers.includes(drawResults.specialNumber) ? 'special' : 'none'}
           />
         </div>

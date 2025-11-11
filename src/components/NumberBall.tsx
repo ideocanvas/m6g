@@ -37,11 +37,18 @@ export default function NumberBall({
   };
 
   const getHighlightClasses = () => {
+    // Use appropriate ring width based on ball size
+    let ringWidth = 'ring-4'; // Default for md, lg, xl
+    
+    if (size === 'xs' || size === 'sm') {
+      ringWidth = 'ring-2'; // Smaller ring for smaller balls
+    }
+    
     switch (highlight) {
       case 'winning':
-        return 'ring-4 ring-orange-500 shadow-lg';
+        return `${ringWidth} ring-orange-500 shadow-lg`;
       case 'special':
-        return 'ring-4 ring-gray-400 shadow-lg';
+        return `${ringWidth} ring-gray-400 shadow-lg`;
       case 'none':
       default:
         return '';
@@ -63,7 +70,7 @@ export default function NumberBall({
         relative rounded-full font-bold text-white shadow-md
         transition-all duration-200 hover:scale-110 hover:shadow-lg
         ${getSizeClasses()}
-        ${selected ? 'ring-4 ring-yellow-400 transform scale-110 shadow-lg' : ''}
+        ${selected ? `${size === 'xs' || size === 'sm' ? 'ring-2' : 'ring-4'} ring-yellow-400 transform scale-110 shadow-lg` : ''}
         ${getHighlightClasses()}
         flex items-center justify-center overflow-hidden
       `}

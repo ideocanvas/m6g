@@ -59,6 +59,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
         const saved = localStorage.getItem('generations');
         if (saved) {
           const generationsData = JSON.parse(saved);
+          console.log("generationsData", generationsData)
           // Convert from old format (object with generationId keys) to new format (array)
           if (typeof generationsData === 'object' && !Array.isArray(generationsData)) {
             const generationsArray = Object.entries(generationsData).map(([generationId, combinations]) => ({
@@ -105,6 +106,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
     setSavedGenerations(updatedGenerations);
 
     try {
+      console.log("saveGeneration", updatedGenerations)
       localStorage.setItem('generations', JSON.stringify(updatedGenerations));
     } catch (error) {
       console.error('Error saving generation:', error);
@@ -172,6 +174,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
 
       const data = await response.json() as { combinations: Combination[] };
       setCombinations(data.combinations);
+      console.log("saveGeneration()...", data);
       saveGeneration(data.combinations);
     } catch (error) {
       console.error('Error generating combinations:', error);

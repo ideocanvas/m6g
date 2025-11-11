@@ -174,12 +174,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json() as FetchDrawsRequest;
-    const { startDate, endDate, days = 30 } = body;
+    const { startDate, endDate, days = 10 } = body;
 
     // Calculate date range if not provided
     const end = endDate || null;
     const start = startDate || null;
-    const lastNDraw = (!startDate && !endDate) ? 10 : null;
+    const lastNDraw = (!startDate && !endDate) ? days : null;
 
     console.log(`Fetching HKJC draw results - startDate: ${start}, endDate: ${end}, lastNDraw: ${lastNDraw}`);
 
