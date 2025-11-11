@@ -230,7 +230,8 @@ function generateCombinations(
   selectedNumbers: number[],
   historicalDraws: DrawRecord[],
   generationAlgorithm: GenerationAlgorithm,
-  lastDrawNumbers?: number[]
+  lastDrawNumbers?: number[],
+  preCalculatedWeights?: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
 ): number[][] {
   // For this test, we'll use a random lucky number from selected numbers
   const luckyNumber = selectedNumbers.length > 0
@@ -238,14 +239,15 @@ function generateCombinations(
     : Math.floor(Math.random() * 49) + 1;
 
   if (generationAlgorithm.name === 'Ensemble') {
-    // Use the ensemble algorithm
+    // Use the ensemble algorithm with pre-calculated weights
     const results = generateEnsembleCombinations(
       combinationType.combinationCount,
       selectedNumbers,
       luckyNumber,
       combinationType.isDouble,
       historicalDraws,
-      lastDrawNumbers
+      lastDrawNumbers,
+      preCalculatedWeights
     );
     return results.map((r: { combination: number[] }) => r.combination);
   } else if (generationAlgorithm.name === 'Bayesian') {
@@ -489,6 +491,16 @@ async function runTest(config: TestConfig): Promise<void> {
   const selectedTestDraws = shuffledTestDraws.slice(0, Math.min(5, testDraws.length));
 
   console.log(`\nProcessing ${selectedTestDraws.length} randomly selected test draws with all combinations...`);
+
+  // Pre-calculate model weights once for ensemble algorithm to reuse across all test draws
+  let preCalculatedWeights: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number } | undefined;
+  if (config.algorithm === 'ensemble') {
+    console.log(`[TEST] Pre-calculating model weights for ensemble algorithm...`);
+    const { calculateModelWeights } = await import('../src/lib/algorithms/generation/ensemble');
+    preCalculatedWeights = calculateModelWeights(historicalDraws);
+    console.log(`[TEST] Model weights calculated: ${JSON.stringify(preCalculatedWeights)}`);
+  }
+
   for (let i = 0; i < selectedTestDraws.length; i++) {
     const testDraw = selectedTestDraws[i];
     const drawDate = testDraw.drawDate!;
@@ -530,7 +542,8 @@ async function runTest(config: TestConfig): Promise<void> {
           selectedNumbers,
           historicalDataUpToDraw,
           generationAlgorithm,
-          lastDrawNumbers
+          lastDrawNumbers,
+          preCalculatedWeights
         );
 
         // Calculate prize results for all combinations

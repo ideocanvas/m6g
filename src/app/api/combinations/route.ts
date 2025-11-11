@@ -144,13 +144,16 @@ export async function POST(request: NextRequest) {
         break;
       case "ensemble":
         console.log(`Generating ensemble combinations for ${currentDate}`);
+        // Calculate model weights once and reuse for multiple requests with same historical data
+        const modelWeights = await getModelWeights(daysOfHistory, currentDate);
         const ensembleResults = generateEnsembleCombinations(
           combinationCount,
           selectedNumbers,
           luckyNumber,
           isDouble,
           pastResults,
-          lastDrawNumbers
+          lastDrawNumbers,
+          modelWeights
         );
         combinations = ensembleResults.map((result) => result.combination);
         break;
@@ -289,5 +292,24 @@ const getLastDraw = unstable_cache(
   },
   ["last-draw"],
   { revalidate: 3600 } // 1 hour cache for last draw
+);
+
+/**
+ * Get model weights for ensemble algorithm with caching
+ */
+const getModelWeights = unstable_cache(
+  async (daysOfHistory: number, currentDate: string) => {
+    console.log(`[CACHE MISS] Calculating model weights for ${daysOfHistory} days from ${currentDate}`);
+
+    // Get historical data first
+    const historicalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
+
+    const { calculateModelWeights } = await import('@/lib/algorithms/generation/ensemble');
+    const weights = calculateModelWeights(historicalDraws);
+    console.log(`[MODEL_WEIGHTS] Calculated weights: ${JSON.stringify(weights)}`);
+    return weights;
+  },
+  ["model-weights"],
+  { revalidate: 86400 } // 1 day cache
 );
 

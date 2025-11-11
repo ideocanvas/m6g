@@ -1,6 +1,7 @@
 import { DrawRecord, EnsembleResult } from '../types';
-import { generateClassicCombinations } from './classic';
+import { generateClassicCombinationsOptimized } from './classic-optimized';
 import { generateFollowOnCombinations } from './follow-on';
+import { generateAdvancedFollowOnCombinations } from '../analysis/advanced-follow-on';
 import { getHistoricalFrequency } from '../analysis/frequency';
 import { getFollowOnNumbers } from '../analysis/follow-on';
 
@@ -15,7 +16,8 @@ export function generateEnsembleCombinations(
   luckyNumber: number,
   isDouble: boolean,
   historicalDraws: DrawRecord[],
-  lastDrawNumbers?: number[]
+  lastDrawNumbers?: number[],
+  preCalculatedWeights?: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
 ): EnsembleResult[] {
   const startTime = Date.now();
   console.log(`[ENSEMBLE] Starting ensemble generation for ${combinationCount} combinations`);
@@ -25,14 +27,17 @@ export function generateEnsembleCombinations(
     throw new Error('No historical data provided');
   }
 
-  // Calculate model weights based on recent performance
+  // Use pre-calculated weights or calculate new ones
   const modelWeightsStart = Date.now();
-  const modelWeights = calculateModelWeights(historicalDraws);
+  const modelWeights = preCalculatedWeights || calculateModelWeights(historicalDraws);
   console.log(`[ENSEMBLE] Model weights calculation: ${Date.now() - modelWeightsStart}ms`);
+  if (preCalculatedWeights) {
+    console.log(`[ENSEMBLE] Using pre-calculated model weights`);
+  }
 
   // Generate combinations from each model
   const classicStart = Date.now();
-  const classicResults = generateClassicCombinations(
+  const classicResults = generateClassicCombinationsOptimized(
     combinationCount * 2, // Generate more for selection
     selectedNumbers,
     luckyNumber,
@@ -111,13 +116,13 @@ export function generateEnsembleCombinations(
 /**
  * Calculate dynamic weights for each model based on recent performance
  */
-function calculateModelWeights(historicalDraws: DrawRecord[]): { classic: number; followOn: number; frequency: number; bayesian: number } {
+export function calculateModelWeights(historicalDraws: DrawRecord[]): { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number } {
   const startTime = Date.now();
 
   if (historicalDraws.length < 20) {
     // Default weights for insufficient data
     console.log(`[MODEL_WEIGHTS] Using default weights (insufficient data): ${Date.now() - startTime}ms`);
-    return { classic: 0.3, followOn: 0.3, frequency: 0.2, bayesian: 0.2 };
+    return { classic: 0.25, followOn: 0.2, advancedFollowOn: 0.2, frequency: 0.15, bayesian: 0.2 };
   }
 
   // Use last 20% of data for performance evaluation
@@ -136,6 +141,10 @@ function calculateModelWeights(historicalDraws: DrawRecord[]): { classic: number
   const followOnScore = evaluateModelPerformance('followOn', trainingData, testData);
   console.log(`[MODEL_WEIGHTS] Follow-on evaluation: ${Date.now() - followOnStart}ms`);
 
+  const advancedFollowOnStart = Date.now();
+  const advancedFollowOnScore = evaluateModelPerformance('advancedFollowOn', trainingData, testData);
+  console.log(`[MODEL_WEIGHTS] Advanced follow-on evaluation: ${Date.now() - advancedFollowOnStart}ms`);
+
   const frequencyStart = Date.now();
   const frequencyScore = evaluateModelPerformance('frequency', trainingData, testData);
   console.log(`[MODEL_WEIGHTS] Frequency evaluation: ${Date.now() - frequencyStart}ms`);
@@ -147,6 +156,7 @@ function calculateModelWeights(historicalDraws: DrawRecord[]): { classic: number
   const scores = {
     classic: classicScore,
     followOn: followOnScore,
+    advancedFollowOn: advancedFollowOnScore,
     frequency: frequencyScore,
     bayesian: bayesianScore
   };
@@ -157,6 +167,7 @@ function calculateModelWeights(historicalDraws: DrawRecord[]): { classic: number
   const result = {
     classic: scores.classic / totalScore,
     followOn: scores.followOn / totalScore,
+    advancedFollowOn: scores.advancedFollowOn / totalScore,
     frequency: scores.frequency / totalScore,
     bayesian: scores.bayesian / totalScore
   };
@@ -171,7 +182,7 @@ function calculateModelWeights(historicalDraws: DrawRecord[]): { classic: number
  * Evaluate model performance on test data
  */
 function evaluateModelPerformance(
-  modelType: 'classic' | 'followOn' | 'frequency' | 'bayesian',
+  modelType: 'classic' | 'followOn' | 'advancedFollowOn' | 'frequency' | 'bayesian',
   trainingData: DrawRecord[],
   testData: DrawRecord[]
 ): number {
@@ -196,19 +207,23 @@ function evaluateModelPerformance(
  * Generate predictions for a specific model
  */
 function generateModelPredictions(
-  modelType: 'classic' | 'followOn' | 'frequency' | 'bayesian',
+  modelType: 'classic' | 'followOn' | 'advancedFollowOn' | 'frequency' | 'bayesian',
   trainingData: DrawRecord[],
   currentDraw: DrawRecord
 ): number[] {
   switch (modelType) {
     case 'classic':
-      const classicResults = generateClassicCombinations(5, [], 0, false, trainingData);
+      const classicResults = generateClassicCombinationsOptimized(5, [], 0, false, trainingData);
       return classicResults[0]?.combination || [];
 
     case 'followOn':
       const lastNumbers = [...currentDraw.winningNumbers, currentDraw.specialNumber];
       const followOnResults = generateFollowOnCombinations(5, [], 0, false, trainingData, lastNumbers);
       return followOnResults[0]?.combination || [];
+
+    case 'advancedFollowOn':
+      const advancedFollowOnResults = generateAdvancedFollowOnCombinations(5, [], 0, false, trainingData);
+      return advancedFollowOnResults[0]?.combination || [];
 
     case 'frequency':
       const frequencyResults = getHistoricalFrequency(trainingData, 'hot');
@@ -375,7 +390,7 @@ function createProbabilityPool(probabilities: Map<number, number>): number[] {
 function scoreCandidates(
   candidates: Array<{ combination: number[]; model: string }>,
   historicalDraws: DrawRecord[],
-  modelWeights: { classic: number; followOn: number; frequency: number; bayesian: number }
+  modelWeights: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
 ): Array<{ combination: number[]; score: number; confidence: number }> {
   return candidates.map(({ combination, model }) => {
     const modelWeight = modelWeights[model as keyof typeof modelWeights] || 0.25;
