@@ -40,6 +40,7 @@ model MarkSixGeneratedCombination {
   sequenceNumber     Int      // Sequence within generation
   combinationNumbers Int[]    // Array of numbers (6 or 7)
   isDouble           Boolean  @default(false) // Whether this is a double combination (7 numbers)
+  splitNumbers       Int[]    // For double combinations: which 2 numbers to split for partial bets
   generationMethod   String   // 'v1', 'v2', 'ai', 'qimen'
   selectedNumbers    Int[]    // User selected numbers used in generation
   luckyNumber        Int?     // Lucky number used in generation

@@ -50,6 +50,7 @@ export default function ResultsPanel({
   const renderCombination = (combination: Combination, index: number) => {
     const numbers = combination.combinationNumbers;
     const isDouble = combination.isDouble;
+    const splitNumbers = combination.splitNumbers || [];
 
     // Handle case where numbers might be undefined or null
     if (!numbers || !Array.isArray(numbers)) {
@@ -70,41 +71,90 @@ export default function ResultsPanel({
         <span className="text-sm font-medium text-gray-600 w-6 text-right">
           {index + 1})
         </span>
-        <div className="flex items-center gap-1">
-          {numbers.map((number, idx) => {
-            let highlight: 'winning' | 'special' | 'none' = 'none';
+        <div className="flex flex-col gap-1">
+          {/* Main combination display - show only the 5 common numbers for split combinations */}
+          <div className="flex items-center gap-1">
+            {(isDouble && splitNumbers.length > 0 ? numbers.filter(n => !splitNumbers.includes(n)) : numbers).map((number, idx) => {
+              let highlight: 'winning' | 'special' | 'none' = 'none';
 
-            if (drawResults) {
-              if (drawResults.winningNumbers.includes(number)) {
-                highlight = 'winning';
-              } else if (drawResults.specialNumber === number) {
-                highlight = 'special';
+              if (drawResults) {
+                if (drawResults.winningNumbers.includes(number)) {
+                  highlight = 'winning';
+                } else if (drawResults.specialNumber === number) {
+                  highlight = 'special';
+                }
               }
-            }
 
-            // Add separator for double combinations
-            if (isDouble && idx === 5) {
+              // Add separator for double combinations (after 5th number)
+              if (isDouble && idx === 4) {
+                return (
+                  <div key={`${combination.id}-${idx}`} className="flex items-center">
+                    <span className="mx-1 text-gray-400 font-bold">+</span>
+                    <NumberBall
+                      number={number}
+                      size="md"
+                      highlight={highlight}
+                    />
+                  </div>
+                );
+              }
+
               return (
-                <div key={`${combination.id}-${idx}`} className="flex items-center">
-                  <span className="mx-1 text-gray-400 font-bold">+</span>
-                  <NumberBall
-                    number={number}
-                    size="md"
-                    highlight={highlight}
-                  />
-                </div>
+                <NumberBall
+                  key={`${combination.id}-${idx}`}
+                  number={number}
+                  size="md"
+                  highlight={highlight}
+                />
               );
-            }
+            })}
+          </div>
 
-            return (
-              <NumberBall
-                key={`${combination.id}-${idx}`}
-                number={number}
-                size="md"
-                highlight={highlight}
-              />
-            );
-          })}
+          {/* Split numbers display for partial bets */}
+          {isDouble && splitNumbers.length > 0 && (
+            <div className="flex flex-col gap-1 text-xs text-gray-600 ml-2">
+              <div className="flex items-center gap-1">
+                <span className="font-medium">Split:</span>
+                {splitNumbers.map((number, idx) => (
+                  <div key={`split-${combination.id}-${idx}`} className="flex items-center">
+                    {idx > 0 && <span className="mx-1">+</span>}
+                    <NumberBall
+                      number={number}
+                      size="sm"
+                      highlight="none"
+                    />
+                  </div>
+                ))}
+                <span className="ml-2 text-gray-400">(Partial bet)</span>
+              </div>
+              
+              {/* Show the two resulting combinations */}
+              <div className="flex flex-col gap-1 ml-4">
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-500">A:</span>
+                  {numbers.filter(n => n !== splitNumbers[1]).map((number, idx) => (
+                    <NumberBall
+                      key={`split-a-${combination.id}-${idx}`}
+                      number={number}
+                      size="sm"
+                      highlight="none"
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-500">B:</span>
+                  {numbers.filter(n => n !== splitNumbers[0]).map((number, idx) => (
+                    <NumberBall
+                      key={`split-b-${combination.id}-${idx}`}
+                      number={number}
+                      size="sm"
+                      highlight="none"
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -256,9 +306,13 @@ export default function ResultsPanel({
             <button
               onClick={() => {
                 const text = combinations
-                  .map((comb, index) =>
-                    `${index + 1}. ${comb.combinationNumbers?.join(', ') || 'Invalid data'}`
-                  )
+                  .map((comb, index) => {
+                    const baseText = `${index + 1}. ${comb.combinationNumbers?.join(', ') || 'Invalid data'}`;
+                    if (comb.isDouble && comb.splitNumbers && comb.splitNumbers.length > 0) {
+                      return `${baseText} (Split: ${comb.splitNumbers.join(', ')})`;
+                    }
+                    return baseText;
+                  })
                   .join('\n');
                 navigator.clipboard.writeText(text);
                 alert(labels[language].combinations_copied);
@@ -271,7 +325,11 @@ export default function ResultsPanel({
               onClick={() => {
                 const shareData = {
                   generationId,
-                  combinations: combinations.map(comb => comb.combinationNumbers || [])
+                  combinations: combinations.map(comb => ({
+                    combinationNumbers: comb.combinationNumbers || [],
+                    isDouble: comb.isDouble,
+                    splitNumbers: comb.splitNumbers || []
+                  }))
                 };
                 const base64Data = btoa(JSON.stringify(shareData));
                 const shareUrl = `${window.location.origin}?data=${base64Data}`;

@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
 
     // Generate combinations based on the selected method
-    let combinations: number[][];
+    let algorithmResults: { combination: number[]; splitNumbers?: number[] }[];
 
     // Get historical data (cached)
     const daysOfHistory = 1095;
@@ -116,31 +116,29 @@ export async function POST(request: NextRequest) {
     switch (generationMethod) {
       case "classic":
         console.log(`Generating classic-optimized combinations for ${currentDate}`);
-        const classicResults = generateClassicCombinationsOptimized(
+        algorithmResults = generateClassicCombinationsOptimized(
           combinationCount,
           selectedNumbers,
           luckyNumber,
           isDouble,
           pastResults
         );
-        combinations = classicResults.map((result) => result.combination);
         break;
       case "follow_on":
         console.log(`Generating advanced follow-on combinations for ${currentDate}`);
-        const advancedFollowOnResults = generateAdvancedFollowOnCombinations(
+        algorithmResults = generateAdvancedFollowOnCombinations(
           combinationCount,
           selectedNumbers,
           luckyNumber,
           isDouble,
           pastResults
         );
-        combinations = advancedFollowOnResults.map((result) => result.combination);
         break;
       case "ensemble":
         console.log(`Generating ensemble combinations for ${currentDate}`);
         // Calculate model weights once and reuse for multiple requests with same historical data
         const modelWeights = await getModelWeights(daysOfHistory, currentDate);
-        const ensembleResults = generateEnsembleCombinations(
+        algorithmResults = generateEnsembleCombinations(
           combinationCount,
           selectedNumbers,
           luckyNumber,
@@ -149,11 +147,10 @@ export async function POST(request: NextRequest) {
           lastDrawNumbers,
           modelWeights
         );
-        combinations = ensembleResults.map((result) => result.combination);
         break;
       case "bayesian":
         console.log(`Generating bayesian combinations for ${currentDate}`);
-        const bayesianResults = generateBayesianCombinations(
+        algorithmResults = generateBayesianCombinations(
           combinationCount,
           selectedNumbers,
           luckyNumber,
@@ -161,7 +158,6 @@ export async function POST(request: NextRequest) {
           pastResults,
           lastDrawNumbers
         );
-        combinations = bayesianResults.map((result) => result.combination);
         break;
       default:
         return NextResponse.json(
@@ -175,14 +171,15 @@ export async function POST(request: NextRequest) {
 
     // Save combinations to database
     const savedCombinations = [];
-    for (let i = 0; i < combinations.length; i++) {
-      const combination = combinations[i];
+    for (let i = 0; i < algorithmResults.length; i++) {
+      const result = algorithmResults[i];
 
       const combinationData = {
         generationId: generationId,
         sequenceNumber: i + 1,
-        combinationNumbers: combination,
+        combinationNumbers: result.combination,
         isDouble: isDouble,
+        splitNumbers: result.splitNumbers || [],
         generationMethod: generationMethod,
         selectedNumbers: selectedNumbers,
         luckyNumber: luckyNumber,

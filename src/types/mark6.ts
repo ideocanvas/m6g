@@ -6,6 +6,7 @@ export interface Combination {
   sequenceNumber: number;
   combinationNumbers: number[];
   isDouble: boolean;
+  splitNumbers?: number[]; // Numbers to split for partial bets (x 2 combinations)
   generationMethod: string;
   selectedNumbers: number[];
   luckyNumber: number;
