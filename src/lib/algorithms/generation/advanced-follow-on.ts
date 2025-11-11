@@ -367,8 +367,9 @@ function generateCombinationsFromAnalysis(
   // Sort by probability (descending)
   weightedNumbers.sort((a, b) => b.weight - a.weight);
 
-  // Generate combinations
-  while (combinations.length < combinationCount && weightedNumbers.length >= 6) {
+  // Generate combinations - require at least 6 numbers for regular, 7 for double
+  const requiredNumbers = isDouble ? 7 : 6;
+  while (combinations.length < combinationCount && weightedNumbers.length >= requiredNumbers) {
     const combination = selectWeightedCombination(weightedNumbers, luckyNumber, isDouble);
     const combinationKey = combination.sort((a, b) => a - b).join(',');
 
@@ -411,9 +412,26 @@ function selectWeightedCombination(
     }
   }
 
-  // Add lucky number if specified
-  if (isDouble && !combination.includes(luckyNumber)) {
-    combination.push(luckyNumber);
+  // For double combinations, ensure we have 7 numbers total
+  if (isDouble) {
+    // If lucky number is not already included, add it
+    if (!combination.includes(luckyNumber)) {
+      combination.push(luckyNumber);
+    }
+    
+    // If we still don't have 7 numbers, add another number
+    if (combination.length < 7 && availableNumbers.length > 0) {
+      const totalWeight = availableNumbers.reduce((sum, item) => sum + item.weight, 0);
+      let random = Math.random() * totalWeight;
+
+      for (let i = 0; i < availableNumbers.length; i++) {
+        random -= availableNumbers[i].weight;
+        if (random <= 0) {
+          combination.push(availableNumbers[i].number);
+          break;
+        }
+      }
+    }
   }
 
   return combination.sort((a, b) => a - b);
