@@ -161,7 +161,7 @@ export default function NumberSelection({
   return (
     <div className="bg-white/80 backdrop-blur-lg rounded-xl shadow-2xl p-6 border border-white/20 h-full flex flex-col relative">
       {/* Header */}
-      <div className="text-center mb-6">
+      <div className="text-center mt-6 mb-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">{labels[language].title}</h1>
         <p className="text-gray-600">{labels[language].select_your_numbers}</p>
       </div>
