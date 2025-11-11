@@ -35,9 +35,7 @@
 	 */
 	"vars": {
 		"NODE_ENV": "production",
-		"MASTER_API_KEY": "",
-		"HJC_API_ENDPOINT": "",
-		"KLUSTER_API_KEY": ""
+		"HJC_API_ENDPOINT": ""
 	}
 	/**
 	 * Note: Use secrets to store sensitive data.
