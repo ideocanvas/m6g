@@ -80,6 +80,7 @@ interface GenerateCombinationRequest {
 ## Implementation Notes
 
 ### Current "x 2" Behavior
+
 The current implementation treats "x 2" combinations as single 7-number bets rather than traditional partial bets. This means:
 
 - **Prize Calculation**: All 7 numbers are evaluated together for prize eligibility
@@ -87,6 +88,7 @@ The current implementation treats "x 2" combinations as single 7-number bets rat
 - **Scoring**: Test results show higher hit rates due to more numbers per combination
 
 ### Planned Enhancement: Split Numbers for Partial Bets
+
 To support traditional "x 2" partial bets, the system will be enhanced with:
 
 - **Split Numbers Field**: Store which 2 numbers should be split for partial bets
@@ -95,7 +97,9 @@ To support traditional "x 2" partial bets, the system will be enhanced with:
 - **Partial Bet Logic**: Each split number creates a separate combination with the 5 common numbers
 
 ### Traditional "x 2" Concept
+
 In traditional Mark Six betting, "x 2" refers to two partial bets:
+
 - **Two combinations**: 5 common numbers + 1 unique number each
 - **Bet Cost**: $5 × 2 = $10 total
 - **Prize Amounts**: Half the standard prize for each partial bet
