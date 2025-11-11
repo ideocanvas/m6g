@@ -40,7 +40,7 @@ export default function NumberSelection({
 
     // Calculate total number slots: combinationCount × 6
     const totalSlots = combinationCount * 6;
-    const maxCount = Math.floor(totalSlots / 3);
+    const maxCount = Math.min(49, Math.floor(totalSlots / 3));
 
     // Default should be the required count, not the max
     const defaultCount = requiredCount;
@@ -70,8 +70,16 @@ export default function NumberSelection({
     { id: '8-2', value: 8, label: '8 x 2', double: true },
     { id: '12-1', value: 12, label: '12 x 1', double: false },
     { id: '12-2', value: 12, label: '12 x 2', double: true },
-    { id: '17-1', value: 17, label: '17 x 1', double: false },
-    { id: '17-2', value: 17, label: '17 x 2', double: true },
+    { id: '16-1', value: 16, label: '16 x 1', double: false },
+    { id: '16-2', value: 16, label: '16 x 2', double: true },
+    { id: '20-1', value: 20, label: '20 x 1', double: false },
+    { id: '20-2', value: 20, label: '20 x 2', double: true },
+    { id: '24-1', value: 24, label: '24 x 1', double: false },
+    { id: '24-2', value: 24, label: '24 x 2', double: true },
+    { id: '28-1', value: 28, label: '28 x 1', double: false },
+    { id: '28-2', value: 28, label: '28 x 2', double: true },
+    { id: '32-1', value: 32, label: '32 x 1', double: false },
+    { id: '32-2', value: 32, label: '32 x 2', double: true },
   ];
 
   const suggestionOptions = [
