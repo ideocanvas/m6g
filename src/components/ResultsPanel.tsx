@@ -74,6 +74,9 @@ export default function ResultsPanel({
         ]
       : numbers;
 
+    // Use smaller balls for double combinations on mobile
+    const ballSize = isDouble ? 'sm' : 'md';
+
     return (
       <div key={combination.id} className="flex items-center gap-2 mb-3">
         <span className="text-sm font-medium text-gray-600 w-6 text-right">
@@ -95,10 +98,10 @@ export default function ResultsPanel({
             if (isDouble && idx === 5) {
               return (
                 <div key={`${combination.id}-${idx}`} className="flex items-center">
-                  <span className="mx-1 text-gray-400 font-bold">+</span>
+                  <span className="mx-1 text-gray-400 font-bold text-sm md:text-base">+</span>
                   <NumberBall
                     number={number}
-                    size="md"
+                    size={ballSize}
                     highlight={highlight}
                   />
                 </div>
@@ -109,7 +112,7 @@ export default function ResultsPanel({
               <NumberBall
                 key={`${combination.id}-${idx}`}
                 number={number}
-                size="md"
+                size={ballSize}
                 highlight={highlight}
               />
             );

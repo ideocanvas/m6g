@@ -21,6 +21,8 @@ export default function NumberBall({
 
   const getSizeClasses = () => {
     switch (size) {
+      case 'xs':
+        return 'w-6 h-6 text-xs';
       case 'sm':
         return 'w-8 h-8 text-xs';
       case 'md':
