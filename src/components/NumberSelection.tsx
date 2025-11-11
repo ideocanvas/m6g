@@ -318,7 +318,7 @@ export default function NumberSelection({
 
         {/* Suggestions */}
         <div className="space-y-2">
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Select
               options={suggestionOptions.map(option => ({
                 value: option.value,
@@ -334,55 +334,57 @@ export default function NumberSelection({
               className="flex-1"
               disabled={isLoading}
             />
-            <div className="flex items-center gap-1 bg-gray-50 rounded-md px-2 border border-gray-300">
-              <input
-                type="number"
-                min={minCount}
-                max={maxCount}
-                value={suggestionCount}
-                onChange={(e) => {
-                  const newValue = parseInt(e.target.value) || defaultCount;
-                  setSuggestionCount(Math.min(maxCount, Math.max(minCount, newValue)));
-                }}
-                className="w-12 px-1 py-1 bg-transparent text-sm text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded"
-                placeholder={defaultCount.toString()}
-                disabled={maxCount === 0}
-              />
-              <span className="text-xs text-gray-500 whitespace-nowrap">
-                / {maxCount}
-              </span>
-            </div>
-            <button
-              onClick={async () => {
-                if (selectedSuggestionType && suggestionCount > 0) {
-                  setIsLoading(true);
-                  setLastSuggestionType(selectedSuggestionType);
-                  try {
-                    await onSuggestNumbers(
-                      selectedSuggestionType as 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced',
-                      suggestionCount
-                    );
-                  } finally {
-                    setIsLoading(false);
+            <div className="flex items-center gap-2 sm:gap-1">
+              <div className="flex items-center gap-1 bg-gray-50 rounded-md px-2 py-2 border border-gray-300 flex-1 sm:flex-none">
+                <input
+                  type="number"
+                  min={minCount}
+                  max={maxCount}
+                  value={suggestionCount}
+                  onChange={(e) => {
+                    const newValue = parseInt(e.target.value) || defaultCount;
+                    setSuggestionCount(Math.min(maxCount, Math.max(minCount, newValue)));
+                  }}
+                  className="w-12 px-1 bg-transparent text-sm text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded"
+                  placeholder={defaultCount.toString()}
+                  disabled={maxCount === 0}
+                />
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  / {maxCount}
+                </span>
+              </div>
+              <button
+                onClick={async () => {
+                  if (selectedSuggestionType && suggestionCount > 0) {
+                    setIsLoading(true);
+                    setLastSuggestionType(selectedSuggestionType);
+                    try {
+                      await onSuggestNumbers(
+                        selectedSuggestionType as 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced',
+                        suggestionCount
+                      );
+                    } finally {
+                      setIsLoading(false);
+                    }
                   }
-                }
-              }}
-              className={`p-2 rounded-lg transition-colors w-12 flex items-center justify-center ${
-                isLoading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : suggestionCount > 0
-                    ? 'bg-indigo-500 hover:bg-indigo-600'
-                    : 'bg-gray-300 cursor-not-allowed'
-              } text-white`}
-              title={labels[language].suggest_numbers}
-              disabled={isLoading || !selectedSuggestionType || suggestionCount <= 0}
-            >
-              {isLoading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                '💡'
-              )}
-            </button>
+                }}
+                className={`p-2 rounded-lg transition-colors w-12 flex items-center justify-center ${
+                  isLoading
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : suggestionCount > 0
+                      ? 'bg-indigo-500 hover:bg-indigo-600'
+                      : 'bg-gray-300 cursor-not-allowed'
+                } text-white`}
+                title={labels[language].suggest_numbers}
+                disabled={isLoading || !selectedSuggestionType || suggestionCount <= 0}
+              >
+                {isLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  '💡'
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Suggestion Status */}
