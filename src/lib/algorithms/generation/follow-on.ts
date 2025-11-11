@@ -1,4 +1,4 @@
-import { DrawRecord, FollowOnCombinationResult } from './types';
+import { DrawRecord, FollowOnCombinationResult } from '../types';
 
 /**
  * Follow-on generation algorithm based on statistical relationships between consecutive draws

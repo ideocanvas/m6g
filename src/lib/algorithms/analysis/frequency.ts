@@ -1,4 +1,4 @@
-import { DrawRecord, FrequencyResult } from './types';
+import { DrawRecord, FrequencyResult } from '../types';
 
 /**
  * Get historical frequency analysis for hot/cold numbers

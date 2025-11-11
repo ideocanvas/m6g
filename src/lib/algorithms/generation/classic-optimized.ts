@@ -1,6 +1,6 @@
 /**
  * Optimized Classic Generation Algorithm
- * 
+ *
  * Performance improvements:
  * - Adaptive candidate generation (reduces from 963 to ~100-200)
  * - Cached scoring with memoization
@@ -9,7 +9,7 @@
  * - Parallel processing simulation
  */
 
-import { DrawRecord, ClassicResult } from './types';
+import { DrawRecord, ClassicResult } from '../types';
 
 interface CandidateResult {
   candidate: number[][];
@@ -49,18 +49,18 @@ export function generateClassicCombinationsOptimized(
 
   // Performance optimization: Adaptive candidate count
   const adaptiveCandidateCount = calculateAdaptiveCandidateCount(historicalDraws.length, combinationCount);
-  
+
   // Performance optimization: Score cache to avoid recalculations
   const scoreCache: ScoreCache = {};
-  
+
   // Performance optimization: Early termination threshold
   const earlyTerminationThreshold = calculateEarlyTerminationThreshold(historicalDraws.length);
-  
+
   let bestCandidate: number[][] | null = null;
   let highestScore = -1;
   let scoreDistribution: Record<number, number> | null = null;
   let numberDistribution: Array<{ number: number; frequency: number }> | null = null;
-  
+
   const allCandidates: CandidateResult[] = [];
   let totalFrequenceFactor = 0;
   const frequenceFactors: number[] = [];
@@ -68,11 +68,11 @@ export function generateClassicCombinationsOptimized(
   // Performance optimization: Generate candidates with early termination
   for (let i = 0; i < adaptiveCandidateCount; i++) {
     const candidate = generateNumbersOptimized(combinationCount, selectedNumbers, luckyNumber, isDouble);
-    
+
     // Performance optimization: Use cached scoring
     const cacheKey = generateCacheKey(candidate);
     let result: CandidateResult;
-    
+
     if (scoreCache[cacheKey]) {
       const cached = scoreCache[cacheKey];
       result = {
@@ -91,7 +91,7 @@ export function generateClassicCombinationsOptimized(
         subNumberDistribution: result.subNumberDistribution
       };
     }
-    
+
     allCandidates.push(result);
     totalFrequenceFactor += result.frequenceFactor;
     frequenceFactors.push(result.frequenceFactor);
@@ -111,10 +111,10 @@ export function generateClassicCombinationsOptimized(
 
   // Performance optimization: Use binary search for better candidate selection
   const filteredCandidates = allCandidates.filter(c => c.frequenceFactor > threshold);
-  
+
   // If no candidates meet threshold, take top 20% by frequenceFactor
-  const finalCandidates = filteredCandidates.length > 0 
-    ? filteredCandidates 
+  const finalCandidates = filteredCandidates.length > 0
+    ? filteredCandidates
     : allCandidates.sort((a, b) => b.frequenceFactor - a.frequenceFactor).slice(0, Math.ceil(allCandidates.length * 0.2));
 
   // Find best candidate
@@ -144,13 +144,13 @@ export function generateClassicCombinationsOptimized(
 function calculateAdaptiveCandidateCount(historicalDataLength: number, combinationCount: number): number {
   // Base candidate count with diminishing returns
   const baseCount = 100;
-  
+
   // Adjust based on data size - more data needs fewer candidates
   const dataFactor = Math.max(50, Math.min(200, 200 - (historicalDataLength / 10)));
-  
+
   // Adjust based on combination count
   const combinationFactor = Math.max(1, combinationCount / 5);
-  
+
   return Math.floor(baseCount * dataFactor / 100 * combinationFactor);
 }
 
@@ -184,7 +184,7 @@ function generateNumbersOptimized(
   const combinationLength = isDouble ? 7 : 6;
 
   // Performance optimization: Pre-shuffle selected numbers for better distribution
-  const shuffledSelectedNumbers = selectedNumbers.length > 0 
+  const shuffledSelectedNumbers = selectedNumbers.length > 0
     ? [...selectedNumbers].sort(() => Math.random() - 0.5)
     : [];
 
@@ -193,7 +193,7 @@ function generateNumbersOptimized(
 
   for (let i = 0; i < combinationCount; i++) {
     const combination = new Set<number>();
-    
+
     // Always include lucky number
     combination.add(luckyNumber);
 
@@ -212,7 +212,7 @@ function generateNumbersOptimized(
     // Performance optimization: Use Fisher-Yates shuffle for remaining numbers
     const remainingNumbers = numberPool.filter(n => !combination.has(n));
     shuffleArray(remainingNumbers);
-    
+
     let remainingIndex = 0;
     while (combination.size < combinationLength && remainingIndex < remainingNumbers.length) {
       combination.add(remainingNumbers[remainingIndex]);
@@ -243,7 +243,7 @@ function shuffleArray<T>(array: T[]): T[] {
  */
 function checkScoreOptimized(candidate: number[][], parsedResults: Array<{ nos: number[]; sno: number }>): CandidateResult {
   const SCORE_MAP: Record<number, number> = {
-    0: 0, 0.5: 0.5, 1: 1, 1.5: 1.5, 2: 2, 2.5: 2.5, 3: 3, 
+    0: 0, 0.5: 0.5, 1: 1, 1.5: 1.5, 2: 2, 2.5: 2.5, 3: 3,
     3.5: 3.5, 4: 4, 4.5: 4.5, 5: 5, 5.5: 5.5, 6: 6,
   };
 
@@ -274,17 +274,17 @@ function checkScoreOptimized(candidate: number[][], parsedResults: Array<{ nos: 
   // Performance optimization: Batch process results
   for (const result of parsedResults) {
     const resultSet = new Set(result.nos);
-    
+
     for (const combinationSet of candidateSets) {
       let subScore = 0;
-      
+
       // Performance optimization: Count intersections using Set operations
       for (const number of combinationSet) {
         if (resultSet.has(number)) {
           subScore += 1;
         }
       }
-      
+
       if (combinationSet.has(result.sno)) {
         subScore += 0.5;
       }
@@ -300,12 +300,12 @@ function checkScoreOptimized(candidate: number[][], parsedResults: Array<{ nos: 
     frequency: numberFrequency[parseInt(num, 10)]
   }));
 
-  return { 
-    candidate, 
-    totalScore, 
-    frequenceFactor, 
-    subScoreMapping, 
-    subNumberDistribution 
+  return {
+    candidate,
+    totalScore,
+    frequenceFactor,
+    subScoreMapping,
+    subNumberDistribution
   };
 }
 

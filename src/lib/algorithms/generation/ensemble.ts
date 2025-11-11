@@ -1,8 +1,8 @@
-import { DrawRecord, EnsembleResult } from './types';
-import { generateClassicCombinations } from './classic-combinations';
-import { generateFollowOnCombinations } from './follow-on-combinations';
-import { getHistoricalFrequency } from './frequency';
-import { getFollowOnNumbers } from './follow-on';
+import { DrawRecord, EnsembleResult } from '../types';
+import { generateClassicCombinations } from './classic';
+import { generateFollowOnCombinations } from './follow-on';
+import { getHistoricalFrequency } from '../analysis/frequency';
+import { getFollowOnNumbers } from '../analysis/follow-on';
 
 /**
  * Ensemble generation algorithm combining multiple statistical models
@@ -23,7 +23,7 @@ export function generateEnsembleCombinations(
 
   // Calculate model weights based on recent performance
   const modelWeights = calculateModelWeights(historicalDraws);
-  
+
   // Generate combinations from each model
   const classicResults = generateClassicCombinations(
     combinationCount * 2, // Generate more for selection
@@ -70,7 +70,7 @@ export function generateEnsembleCombinations(
 
   // Score and select best combinations
   const scoredCandidates = scoreCandidates(allCandidates, historicalDraws, modelWeights);
-  
+
   // Select top combinations with diversity
   const finalCombinations = selectDiverseCombinations(scoredCandidates, combinationCount);
 
@@ -106,7 +106,7 @@ function calculateModelWeights(historicalDraws: DrawRecord[]): { classic: number
 
   // Normalize weights to sum to 1
   const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
-  
+
   return {
     classic: scores.classic / totalScore,
     followOn: scores.followOn / totalScore,
@@ -124,19 +124,19 @@ function evaluateModelPerformance(
   testData: DrawRecord[]
 ): number {
   let totalScore = 0;
-  
+
   for (let i = 0; i < testData.length - 1; i++) {
     const currentDraw = testData[i];
     const nextDraw = testData[i + 1];
-    
+
     // Generate predictions using the model
     const predictions = generateModelPredictions(modelType, trainingData, currentDraw);
-    
+
     // Score predictions against actual next draw
     const score = calculatePredictionScore(predictions, nextDraw);
     totalScore += score;
   }
-  
+
   return Math.max(0.1, totalScore / (testData.length - 1)); // Minimum weight of 0.1
 }
 
@@ -152,22 +152,22 @@ function generateModelPredictions(
     case 'classic':
       const classicResults = generateClassicCombinations(5, [], 0, false, trainingData);
       return classicResults[0]?.combination || [];
-      
+
     case 'followOn':
       const lastNumbers = [...currentDraw.winningNumbers, currentDraw.specialNumber];
       const followOnResults = generateFollowOnCombinations(5, [], 0, false, trainingData, lastNumbers);
       return followOnResults[0]?.combination || [];
-      
+
     case 'frequency':
       const frequencyResults = getHistoricalFrequency(trainingData, 'hot');
       return frequencyResults.slice(0, 6).map(r => r.number);
-      
+
     case 'bayesian':
       const frequencyNums = getHistoricalFrequency(trainingData, 'hot').slice(0, 10).map(r => r.number);
       const followOnNums = getFollowOnNumbers(trainingData).slice(0, 10).map(r => r.number);
       const bayesianResults = generateBayesianCombinations(5, [], 0, false, trainingData, frequencyNums, followOnNums);
       return bayesianResults[0]?.combination || [];
-      
+
     default:
       return [];
   }
@@ -178,19 +178,19 @@ function generateModelPredictions(
  */
 function calculatePredictionScore(predictions: number[], actualDraw: DrawRecord): number {
   let score = 0;
-  
+
   // Check main numbers
   for (const num of predictions) {
     if (actualDraw.winningNumbers.includes(num)) {
       score += 2; // Higher weight for main numbers
     }
   }
-  
+
   // Check special number
   if (predictions.includes(actualDraw.specialNumber)) {
     score += 1;
   }
-  
+
   return score;
 }
 
@@ -208,35 +208,35 @@ function generateBayesianCombinations(
 ): { combination: number[] }[] {
   const combinations: { combination: number[] }[] = [];
   const combinationLength = isDouble ? 7 : 6;
-  
+
   // Calculate Bayesian probabilities
   const probabilities = calculateBayesianProbabilities(historicalDraws, frequencyNumbers, followOnNumbers);
-  
+
   for (let i = 0; i < combinationCount; i++) {
     const combination = new Set<number>();
-    
+
     // Always include lucky number
     combination.add(luckyNumber);
-    
+
     // Include selected numbers
     const userSelectionPool = selectedNumbers.filter(n => n !== luckyNumber);
     userSelectionPool.sort(() => 0.5 - Math.random());
-    
+
     let userPickIndex = 0;
     while (combination.size < combinationLength && userPickIndex < userSelectionPool.length) {
       combination.add(userSelectionPool[userPickIndex]);
       userPickIndex++;
     }
-    
+
     // Fill remaining numbers using Bayesian probabilities
     const probabilityPool = createProbabilityPool(probabilities);
     let attempts = 0;
-    
+
     while (combination.size < combinationLength && attempts < 500) {
       if (probabilityPool.length > 0) {
         const randomIndex = Math.floor(Math.random() * probabilityPool.length);
         const pickedNumber = probabilityPool[randomIndex];
-        
+
         if (!combination.has(pickedNumber)) {
           combination.add(pickedNumber);
         }
@@ -249,15 +249,15 @@ function generateBayesianCombinations(
       }
       attempts++;
     }
-    
+
     const finalCombination = Array.from(combination);
     finalCombination.sort((a, b) => a - b);
-    
+
     if (finalCombination.length === combinationLength) {
       combinations.push({ combination: finalCombination });
     }
   }
-  
+
   return combinations;
 }
 
@@ -270,12 +270,12 @@ function calculateBayesianProbabilities(
   followOnNumbers: number[]
 ): Map<number, number> {
   const probabilities = new Map<number, number>();
-  
+
   // Initialize with uniform prior
   for (let i = 1; i <= 49; i++) {
     probabilities.set(i, 1/49);
   }
-  
+
   // Update with frequency evidence
   const frequencyWeight = 0.4;
   frequencyNumbers.forEach((num, index) => {
@@ -283,7 +283,7 @@ function calculateBayesianProbabilities(
     const frequencyBoost = frequencyWeight * (1 - index / frequencyNumbers.length);
     probabilities.set(num, currentProb + frequencyBoost);
   });
-  
+
   // Update with follow-on evidence
   const followOnWeight = 0.3;
   followOnNumbers.forEach((num, index) => {
@@ -291,13 +291,13 @@ function calculateBayesianProbabilities(
     const followOnBoost = followOnWeight * (1 - index / followOnNumbers.length);
     probabilities.set(num, currentProb + followOnBoost);
   });
-  
+
   // Normalize probabilities
   const total = Array.from(probabilities.values()).reduce((sum, prob) => sum + prob, 0);
   probabilities.forEach((prob, num) => {
     probabilities.set(num, prob / total);
   });
-  
+
   return probabilities;
 }
 
@@ -306,14 +306,14 @@ function calculateBayesianProbabilities(
  */
 function createProbabilityPool(probabilities: Map<number, number>): number[] {
   const pool: number[] = [];
-  
+
   probabilities.forEach((probability, number) => {
     const count = Math.max(1, Math.floor(probability * 1000));
     for (let i = 0; i < count; i++) {
       pool.push(number);
     }
   });
-  
+
   return pool;
 }
 
@@ -327,16 +327,16 @@ function scoreCandidates(
 ): Array<{ combination: number[]; score: number; confidence: number }> {
   return candidates.map(({ combination, model }) => {
     const modelWeight = modelWeights[model as keyof typeof modelWeights] || 0.25;
-    
+
     // Calculate combination quality score
     const qualityScore = calculateCombinationQuality(combination, historicalDraws);
-    
+
     // Calculate diversity score (avoid similar combinations)
     const diversityScore = calculateDiversityScore(combination, candidates);
-    
+
     const totalScore = modelWeight * qualityScore + (1 - modelWeight) * diversityScore;
     const confidence = Math.min(1, totalScore / 2); // Normalize to 0-1 range
-    
+
     return {
       combination,
       score: totalScore,
@@ -350,31 +350,31 @@ function scoreCandidates(
  */
 function calculateCombinationQuality(combination: number[], historicalDraws: DrawRecord[]): number {
   let score = 0;
-  
+
   // Check against recent draws for pattern matching
   const recentDraws = historicalDraws.slice(-20);
-  
+
   for (const draw of recentDraws) {
     let matchScore = 0;
-    
+
     // Check main number matches
     for (const num of combination) {
       if (draw.winningNumbers.includes(num)) {
         matchScore += 2;
       }
     }
-    
+
     // Check special number match
     if (combination.includes(draw.specialNumber)) {
       matchScore += 1;
     }
-    
+
     // Higher score for moderate matches (not too high, not too low)
     if (matchScore >= 2 && matchScore <= 4) {
       score += 1;
     }
   }
-  
+
   return score / recentDraws.length;
 }
 
@@ -386,14 +386,14 @@ function calculateDiversityScore(
   allCandidates: Array<{ combination: number[] }>
 ): number {
   let minSimilarity = 1;
-  
+
   for (const other of allCandidates) {
     if (other.combination !== combination) {
       const similarity = calculateSimilarity(combination, other.combination);
       minSimilarity = Math.min(minSimilarity, similarity);
     }
   }
-  
+
   return 1 - minSimilarity; // Higher score for more diversity
 }
 
@@ -404,7 +404,7 @@ function calculateSimilarity(comb1: number[], comb2: number[]): number {
   const set1 = new Set(comb1);
   const set2 = new Set(comb2);
   const intersection = new Set([...set1].filter(x => set2.has(x)));
-  
+
   return intersection.size / Math.max(set1.size, set2.size);
 }
 
@@ -417,40 +417,40 @@ function selectDiverseCombinations(
 ): Array<{ combination: number[]; confidence: number }> {
   // Sort by score descending
   const sorted = [...scoredCandidates].sort((a, b) => b.score - a.score);
-  
+
   const selected: Array<{ combination: number[]; confidence: number }> = [];
   const usedNumbers = new Set<number>();
-  
+
   for (const candidate of sorted) {
     if (selected.length >= count) break;
-    
+
     // Check if this combination adds diversity
     const candidateNumbers = new Set(candidate.combination);
     const overlap = new Set([...candidateNumbers].filter(x => usedNumbers.has(x)));
-    
+
     if (overlap.size <= 2) { // Allow some overlap for natural patterns
       selected.push({
         combination: candidate.combination,
         confidence: candidate.confidence
       });
-      
+
       // Add numbers to used set
       candidate.combination.forEach(num => usedNumbers.add(num));
     }
   }
-  
+
   // If we don't have enough diverse combinations, take the highest scoring ones
   if (selected.length < count) {
     const remainingNeeded = count - selected.length;
     const remainingCandidates = sorted
       .filter(candidate => !selected.some(s => s.combination === candidate.combination))
       .slice(0, remainingNeeded);
-    
+
     selected.push(...remainingCandidates.map(c => ({
       combination: c.combination,
       confidence: c.confidence
     })));
   }
-  
+
   return selected;
 }

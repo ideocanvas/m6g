@@ -2,52 +2,52 @@
 
 /**
  * Performance Test for Classic Generation Algorithms
- * 
+ *
  * Compares the original classic algorithm with the optimized version
  */
 
-import { generateClassicCombinations } from '../src/lib/algorithms/classic-combinations';
-import { generateClassicCombinationsOptimized } from '../src/lib/algorithms/classic-combinations-optimized';
+import { generateClassicCombinations } from '../src/lib/algorithms/generation/classic';
+import { generateClassicCombinationsOptimized } from '../src/lib/algorithms/generation/classic-optimized';
 import { DrawRecord } from '../src/lib/algorithms/types';
 
 // Load real draw data from JSON file
 async function getRealDrawData(): Promise<DrawRecord[]> {
   console.log('Loading real Mark Six data from JSON file');
-  
+
   const fs = await import('fs');
   const path = await import('path');
-  
+
   const filePath = path.join(process.cwd(), 'docs/data/UfxCdaMarksixResults.json');
-  
+
   if (!fs.existsSync(filePath)) {
     throw new Error(`Real data file not found: ${filePath}`);
   }
-  
+
   const fileContent = fs.readFileSync(filePath, 'utf-8');
   const data = JSON.parse(fileContent);
-  
+
   const drawRecords: DrawRecord[] = [];
-  
+
   for (const result of data.UfxCdaMarksixResults) {
     // Parse winning numbers from "no" field (format: "7+16+26+31+47+49")
     const winningNumbers = result.no.split('+').map((num: string) => parseInt(num.trim(), 10));
-    
+
     // Parse special number from "sno" field
     const specialNumber = parseInt(result.sno, 10);
-    
+
     // Parse draw date
     const drawDate = new Date(result.drawDate);
-    
+
     drawRecords.push({
       winningNumbers,
       specialNumber,
       drawDate
     });
   }
-  
+
   // Sort by draw date ascending
   drawRecords.sort((a, b) => a.drawDate!.getTime() - b.drawDate!.getTime());
-  
+
   console.log(`Loaded ${drawRecords.length} real draw records`);
   return drawRecords;
 }
@@ -79,14 +79,14 @@ async function runPerformanceTest(
   averageScore: number;
 }> {
   console.log(`\nTesting ${algorithmName}...`);
-  
+
   const times: number[] = [];
   const scores: number[] = [];
   let totalCombinations = 0;
 
   for (let i = 0; i < iterations; i++) {
     const startTime = performance.now();
-    
+
     const results = algorithm(
       combinationCount,
       selectedNumbers,
@@ -94,17 +94,17 @@ async function runPerformanceTest(
       isDouble,
       historicalDraws
     );
-    
+
     const endTime = performance.now();
     const executionTime = endTime - startTime;
-    
+
     times.push(executionTime);
     totalCombinations += results.length;
-    
+
     // Calculate average score
     const avgScore = results.reduce((sum: number, result: { score?: number }) => sum + (result.score || 0), 0) / results.length;
     scores.push(avgScore);
-    
+
     console.log(`  Iteration ${i + 1}: ${executionTime.toFixed(2)}ms, Score: ${avgScore.toFixed(2)}`);
   }
 
@@ -128,14 +128,14 @@ async function runPerformanceTest(
  */
 async function comparePerformance(): Promise<void> {
   console.log('=== Classic Generation Algorithm Performance Comparison ===\n');
-  
+
   // Get test data
   const allDrawRecords = await getRealDrawData();
-  
+
   // Use last 100 draws for testing
   const testDraws = allDrawRecords.slice(-100);
   console.log(`Using ${testDraws.length} historical draws for testing`);
-  
+
   // Test configuration
   const testConfig = {
     combinationCount: 10,
@@ -144,17 +144,17 @@ async function comparePerformance(): Promise<void> {
     isDouble: false,
     iterations: 5
   };
-  
+
   console.log(`Test Configuration:`);
   console.log(`- Combination Count: ${testConfig.combinationCount}`);
   console.log(`- Selected Numbers: ${testConfig.selectedNumbers.length}`);
   console.log(`- Lucky Number: ${testConfig.luckyNumber}`);
   console.log(`- Double: ${testConfig.isDouble}`);
   console.log(`- Iterations: ${testConfig.iterations}`);
-  
+
   // Run performance tests
   const results = [];
-  
+
   // Test original algorithm
   results.push(await runPerformanceTest(
     'Original Classic',
@@ -166,7 +166,7 @@ async function comparePerformance(): Promise<void> {
     testDraws,
     testConfig.iterations
   ));
-  
+
   // Test optimized algorithm
   results.push(await runPerformanceTest(
     'Optimized Classic',
@@ -178,12 +178,12 @@ async function comparePerformance(): Promise<void> {
     testDraws,
     testConfig.iterations
   ));
-  
+
   // Display comparison results
   console.log('\n' + '='.repeat(80));
   console.log('PERFORMANCE COMPARISON RESULTS');
   console.log('='.repeat(80));
-  
+
   for (const result of results) {
     console.log(`\n${result.algorithmName}:`);
     console.log(`  Average Time: ${result.averageTime.toFixed(2)}ms`);
@@ -192,12 +192,12 @@ async function comparePerformance(): Promise<void> {
     console.log(`  Average Score: ${result.averageScore.toFixed(2)}`);
     console.log(`  Combinations per run: ${result.totalCombinations}`);
   }
-  
+
   // Calculate performance improvement
   const originalTime = results[0].averageTime;
   const optimizedTime = results[1].averageTime;
   const improvement = ((originalTime - optimizedTime) / originalTime) * 100;
-  
+
   console.log('\n' + '='.repeat(80));
   console.log('PERFORMANCE SUMMARY');
   console.log('='.repeat(80));
@@ -205,17 +205,17 @@ async function comparePerformance(): Promise<void> {
   console.log(`Optimized Algorithm: ${optimizedTime.toFixed(2)}ms`);
   console.log(`Performance Improvement: ${improvement.toFixed(1)}% faster`);
   console.log(`Speedup Factor: ${(originalTime / optimizedTime).toFixed(2)}x`);
-  
+
   // Quality comparison
   const originalScore = results[0].averageScore;
   const optimizedScore = results[1].averageScore;
   const scoreDifference = ((optimizedScore - originalScore) / originalScore) * 100;
-  
+
   console.log(`\nQUALITY COMPARISON:`);
   console.log(`Original Score: ${originalScore.toFixed(2)}`);
   console.log(`Optimized Score: ${optimizedScore.toFixed(2)}`);
   console.log(`Score Difference: ${scoreDifference.toFixed(1)}%`);
-  
+
   if (scoreDifference >= 0) {
     console.log('✅ Optimized algorithm maintains or improves quality');
   } else {
@@ -230,29 +230,29 @@ async function testMemoryUsage(): Promise<void> {
   console.log('\n' + '='.repeat(80));
   console.log('MEMORY USAGE TEST');
   console.log('='.repeat(80));
-  
+
   const allDrawRecords = await getRealDrawData();
   const testDraws = allDrawRecords.slice(-50);
-  
+
   // Test memory usage for both algorithms
   const memoryUsage = process.memoryUsage();
   console.log(`Initial Memory Usage:`);
   console.log(`  RSS: ${(memoryUsage.rss / 1024 / 1024).toFixed(2)} MB`);
   console.log(`  Heap Total: ${(memoryUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`);
   console.log(`  Heap Used: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`);
-  
+
   // Run both algorithms multiple times to measure memory impact
   for (let i = 0; i < 10; i++) {
     generateClassicCombinations(10, [7, 16, 26, 31, 47, 49], 7, false, testDraws);
     generateClassicCombinationsOptimized(10, [7, 16, 26, 31, 47, 49], 7, false, testDraws);
   }
-  
+
   const finalMemoryUsage = process.memoryUsage();
   console.log(`\nFinal Memory Usage:`);
   console.log(`  RSS: ${(finalMemoryUsage.rss / 1024 / 1024).toFixed(2)} MB`);
   console.log(`  Heap Total: ${(finalMemoryUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`);
   console.log(`  Heap Used: ${(finalMemoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`);
-  
+
   const memoryIncrease = finalMemoryUsage.heapUsed - memoryUsage.heapUsed;
   console.log(`\nMemory Increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)} MB`);
 }

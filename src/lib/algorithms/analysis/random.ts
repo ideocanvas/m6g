@@ -1,4 +1,4 @@
-import { RandomResult } from './types';
+import { RandomResult } from '../types';
 
 /**
  * Generate random numbers (1-49)

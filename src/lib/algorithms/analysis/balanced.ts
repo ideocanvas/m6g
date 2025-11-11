@@ -1,4 +1,4 @@
-import { BalancedResult } from './types';
+import { BalancedResult } from '../types';
 
 /**
  * Generate balanced numbers across different ranges

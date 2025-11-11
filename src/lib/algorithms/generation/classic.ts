@@ -1,4 +1,4 @@
-import { DrawRecord, ClassicResult } from './types';
+import { DrawRecord, ClassicResult } from '../types';
 
 /**
  * Classic generation algorithm based on statistical analysis

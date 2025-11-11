@@ -1,4 +1,4 @@
-import { DrawRecord, FollowOnResult } from './types';
+import { DrawRecord, FollowOnResult } from '../types';
 
 /**
  * Get follow-on numbers based on historical patterns
