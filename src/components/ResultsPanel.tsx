@@ -240,7 +240,7 @@ export default function ResultsPanel({
             />
             <button
               onClick={handleCheckDrawResults}
-              className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition-colors font-medium"
+              className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition-colors font-medium text-nowrap"
             >
               {labels[language].check}
             </button>

@@ -179,7 +179,7 @@ export default function DatePicker({
           readOnly
           value={formatDisplayDate(value)}
           placeholder={placeholder || labels[language].select_date}
-          className="flex-1 bg-transparent outline-none cursor-pointer text-gray-700 placeholder-gray-400"
+          className="w-40 bg-transparent outline-none cursor-pointer text-gray-700 placeholder-gray-400"
         />
         <svg
           className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
