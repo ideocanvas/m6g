@@ -78,12 +78,26 @@ export interface NumberSelectionProps {
   isGenerating?: boolean;
 }
 
+export interface SavedGeneration {
+  generationId: string;
+  combinations: Combination[];
+  selectedNumbers: number[];
+  luckyNumber: number;
+  combinationCount: number;
+  isDouble: boolean;
+  generationMethod: 'ensemble' | 'bayesian';
+  createdAt: string;
+}
+
 export interface ResultsPanelProps {
   combinations: Combination[];
   generationId: string;
   drawResults: DrawResult | null;
   language: 'en' | 'zh-TW';
   onCheckDrawResults: (date: string) => void;
+  savedGenerations: SavedGeneration[];
+  onLoadGeneration: (generation: SavedGeneration) => void;
+  onDeleteGeneration: (generationId: string) => void;
 }
 
 export interface NumberBallProps {

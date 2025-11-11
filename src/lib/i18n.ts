@@ -74,6 +74,8 @@ export interface LanguageLabels {
   extra_numbers: string;
   ai_prompt_button: string;
   qimen_ai_button: string;
+  saved_generations: string;
+  confirm_delete_generation: string;
 }
 
 export type LanguageCode = 'en' | 'zh-TW';
@@ -151,7 +153,9 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     remove_x_numbers_suggestion: 'You have selected {extra} extra numbers. Consider removing {count} numbers.',
     extra_numbers: '({count} extra)',
     ai_prompt_button: 'AI Prompt',
-    qimen_ai_button: 'QiMen AI'
+    qimen_ai_button: 'QiMen AI',
+    saved_generations: 'Saved Generations',
+    confirm_delete_generation: 'Are you sure you want to delete this generation?'
   },
   'zh-TW': {
     title: '六合彩生成器',
@@ -225,7 +229,9 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     remove_x_numbers_suggestion: '您已選擇了 {extra} 個額外號碼。考慮移除 {count} 個號碼。',
     extra_numbers: '（多{count}個）',
     ai_prompt_button: 'AI 提示',
-    qimen_ai_button: '奇門 AI'
+    qimen_ai_button: '奇門 AI',
+    saved_generations: '已保存的生成記錄',
+    confirm_delete_generation: '確定要刪除此生成記錄嗎？'
   }
 };
 

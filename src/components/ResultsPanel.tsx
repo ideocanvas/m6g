@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ResultsPanelProps, Combination } from '@/types/mark6';
 import NumberBall from './NumberBall';
 import DatePicker from './DatePicker';
+import Select from './Select';
 import { labels } from '@/lib/i18n';
 
 export default function ResultsPanel({
@@ -12,8 +13,12 @@ export default function ResultsPanel({
   drawResults,
   onCheckDrawResults,
   language,
+  savedGenerations,
+  onLoadGeneration,
+  onDeleteGeneration,
 }: ResultsPanelProps) {
   const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedGenerationId, setSelectedGenerationId] = useState<string>('');
 
   const formatDateForInput = (date: Date) => {
     return date.toISOString().split('T')[0];
@@ -25,6 +30,21 @@ export default function ResultsPanel({
       return;
     }
     onCheckDrawResults(selectedDate);
+  };
+
+  const handleLoadGeneration = (generationId: string) => {
+    const generation = savedGenerations.find(gen => gen.generationId === generationId);
+    if (generation) {
+      onLoadGeneration(generation);
+      setSelectedGenerationId(generationId);
+    }
+  };
+
+  const handleDeleteGeneration = (generationId: string) => {
+    if (confirm(labels[language].confirm_delete_generation || 'Are you sure you want to delete this generation?')) {
+      onDeleteGeneration(generationId);
+      setSelectedGenerationId('');
+    }
   };
 
   const renderCombination = (combination: Combination, index: number) => {
@@ -172,8 +192,39 @@ export default function ResultsPanel({
         )}
       </div>
 
+      {/* Saved Generations */}
+      <div className="space-y-4 pt-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {labels[language].saved_generations || 'Saved Generations'}
+          </label>
+          <div className="flex gap-2">
+            <Select
+              options={[
+                { value: '', label: labels[language].select_saved_record || 'Select saved record...' },
+                ...savedGenerations.map((generation) => ({
+                  value: generation.generationId,
+                  label: `${generation.generationId} - ${new Date(generation.createdAt).toLocaleString()}`
+                }))
+              ]}
+              value={selectedGenerationId}
+              onChange={(value) => handleLoadGeneration(value as string)}
+              placeholder={labels[language].select_saved_record || 'Select saved record...'}
+              className="flex-1"
+            />
+            <button
+              onClick={() => handleDeleteGeneration(selectedGenerationId)}
+              disabled={!selectedGenerationId}
+              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {labels[language].delete || 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Draw Results Check */}
-      <div className="space-y-4 border-t pt-6">
+      <div className="space-y-4 pt-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {labels[language].check_draw_results}

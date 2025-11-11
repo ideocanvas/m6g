@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import NumberSelection from './NumberSelection';
 import ResultsPanel from './ResultsPanel';
-import { Combination, DrawResult } from '@/types/mark6';
+import { Combination, DrawResult, SavedGeneration } from '@/types/mark6';
 import { labels, LanguageCode } from '@/lib/i18n';
 
 interface MarkSixGeneratorProps {
@@ -16,10 +16,11 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   const [combinations, setCombinations] = useState<Combination[]>([]);
   const [currentGenerationId, setCurrentGenerationId] = useState<string>('');
   const [drawResults, setDrawResults] = useState<DrawResult | null>(null);
-  const [generationMethod, setGenerationMethod] = useState<'ensemble' | 'bayesian'>('ensemble');
+  const [generationMethod, setGenerationMethod] = useState<'ensemble' | 'bayesian'>('bayesian');
   const [combinationCount, setCombinationCount] = useState<number>(4);
   const [isDouble, setIsDouble] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [savedGenerations, setSavedGenerations] = useState<SavedGeneration[]>([]);
 
   // Generate a unique generation ID
   const generateGenerationId = () => {
@@ -50,6 +51,94 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
     setSelectedNumbers(allNumbers);
   };
 
+
+  // Load saved generations from localStorage on component mount
+  useEffect(() => {
+    const loadSavedGenerations = () => {
+      try {
+        const saved = localStorage.getItem('generations');
+        if (saved) {
+          const generationsData = JSON.parse(saved);
+          // Convert from old format (object with generationId keys) to new format (array)
+          if (typeof generationsData === 'object' && !Array.isArray(generationsData)) {
+            const generationsArray = Object.entries(generationsData).map(([generationId, combinations]) => ({
+              generationId,
+              combinations: combinations as Combination[],
+              selectedNumbers: [],
+              luckyNumber: 0,
+              combinationCount: 4,
+              isDouble: false,
+              generationMethod: 'bayesian' as 'ensemble' | 'bayesian',
+              createdAt: new Date().toISOString(),
+            }));
+            setSavedGenerations(generationsArray);
+            // Also update localStorage to new format
+            localStorage.setItem('generations', JSON.stringify(generationsArray));
+          } else {
+            setSavedGenerations(generationsData);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved generations:', error);
+      }
+    };
+
+    loadSavedGenerations();
+  }, []);
+
+  // Save generation to localStorage
+  const saveGeneration = (combinations: Combination[]) => {
+    if (!currentGenerationId || combinations.length === 0) return;
+
+    const savedGeneration: SavedGeneration = {
+      generationId: currentGenerationId,
+      combinations,
+      selectedNumbers,
+      luckyNumber: luckyNumber!,
+      combinationCount,
+      isDouble,
+      generationMethod,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedGenerations = [...savedGenerations, savedGeneration];
+    setSavedGenerations(updatedGenerations);
+
+    try {
+      localStorage.setItem('generations', JSON.stringify(updatedGenerations));
+    } catch (error) {
+      console.error('Error saving generation:', error);
+    }
+  };
+
+  // Load a saved generation
+  const loadGeneration = (generation: SavedGeneration) => {
+    setSelectedNumbers(generation.selectedNumbers);
+    setLuckyNumber(generation.luckyNumber);
+    setCombinationCount(generation.combinationCount);
+    setIsDouble(generation.isDouble);
+    setGenerationMethod(generation.generationMethod);
+    setCombinations(generation.combinations);
+    setCurrentGenerationId(generation.generationId);
+  };
+
+  // Delete a saved generation
+  const deleteGeneration = (generationId: string) => {
+    const updatedGenerations = savedGenerations.filter(gen => gen.generationId !== generationId);
+    setSavedGenerations(updatedGenerations);
+
+    try {
+      localStorage.setItem('generations', JSON.stringify(updatedGenerations));
+    } catch (error) {
+      console.error('Error deleting generation:', error);
+    }
+
+    // If we're currently viewing the deleted generation, clear the results
+    if (currentGenerationId === generationId) {
+      setCombinations([]);
+      setCurrentGenerationId('');
+    }
+  };
 
   const generateCombinations = async () => {
     if (!luckyNumber) {
@@ -83,6 +172,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
 
       const data = await response.json() as { combinations: Combination[] };
       setCombinations(data.combinations);
+      saveGeneration(data.combinations);
     } catch (error) {
       console.error('Error generating combinations:', error);
       alert('Failed to generate combinations. Please try again.');
@@ -219,6 +309,9 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
           drawResults={drawResults}
           language={language}
           onCheckDrawResults={checkDrawResults}
+          savedGenerations={savedGenerations}
+          onLoadGeneration={loadGeneration}
+          onDeleteGeneration={deleteGeneration}
         />
       </div>
     </div>
