@@ -5,12 +5,12 @@ import { LanguageCode } from '@/lib/i18n';
 export default async function Home() {
   const cookieStore = await cookies();
   const languageCookie = cookieStore.get('mark6-language');
-  
-  let targetLanguage: LanguageCode = 'en';
-  
-  if (languageCookie?.value === 'zh-TW') {
-    targetLanguage = 'zh-TW';
+
+  let targetLanguage: LanguageCode = 'zh-TW';
+
+  if (languageCookie?.value === 'en') {
+    targetLanguage = 'en';
   }
-  
+
   redirect(`/${targetLanguage}`);
 }
