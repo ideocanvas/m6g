@@ -8,6 +8,9 @@
  * - Weighted combination of different time horizons
  */
 
+// Debug flag to control logging
+const DEBUG = process.env.DEBUG === 'true' || false;
+
 import { DrawRecord, FollowOnResult, FollowOnCombinationResult } from '../types';
 
 interface AdvancedFollowOnConfig {
@@ -42,6 +45,13 @@ interface ConditionalProbability {
   confidence: number;
 }
 
+export interface AdvancedFollowOnAnalysis {
+  followOnChains: FollowOnChain[];
+  conditionalProbs: ConditionalProbability[];
+  patternClusters: PatternCluster[];
+  weightedProbabilities: Map<number, number>;
+}
+
 /**
  * Advanced Follow-on Algorithm Implementation
  */
@@ -50,40 +60,71 @@ export function generateAdvancedFollowOnCombinations(
   selectedNumbers: number[],
   luckyNumber: number,
   isDouble: boolean,
-  historicalDraws: DrawRecord[]
+  historicalDraws: DrawRecord[],
+  preCalculatedAnalysis?: AdvancedFollowOnAnalysis
 ): FollowOnCombinationResult[] {
-  const config: AdvancedFollowOnConfig = {
-    maxChainLength: 3,
-    timeHorizons: [1, 3, 5, 10], // Look back 1, 3, 5, 10 draws
-    patternThreshold: 0.7,
-    conditionalProbabilityThreshold: 0.6
-  };
+  const startTime = Date.now();
 
-  // Analyze multi-step follow-on chains
-  const followOnChains = analyzeMultiStepChains(historicalDraws, config);
+  // Use pre-calculated analysis or calculate new
+  let analysis: AdvancedFollowOnAnalysis;
 
-  // Calculate conditional probabilities
-  const conditionalProbs = calculateConditionalProbabilities(historicalDraws, config);
+  if (preCalculatedAnalysis) {
+    if (DEBUG) console.log(`[ADV_FOLLOW_ON] Using pre-calculated analysis`);
+    analysis = preCalculatedAnalysis;
+  } else {
+    // Performance optimization: Use adaptive configuration based on data size
+    const config: AdvancedFollowOnConfig = {
+      maxChainLength: Math.min(3, Math.floor(historicalDraws.length / 100) + 1),
+      timeHorizons: historicalDraws.length > 100 ? [1, 3, 5, 10] : [1, 3], // Reduce horizons for small datasets
+      patternThreshold: 0.7,
+      conditionalProbabilityThreshold: 0.6
+    };
 
-  // Cluster patterns by similar conditions
-  const patternClusters = clusterPatterns(historicalDraws, config);
+    if (DEBUG) console.log(`[ADV_FOLLOW_ON] Starting analysis with ${historicalDraws.length} historical draws, config:`, config);
 
-  // Generate weighted probabilities across time horizons
-  const weightedProbabilities = calculateWeightedProbabilities(
-    historicalDraws,
-    followOnChains,
-    conditionalProbs,
-    patternClusters
-  );
+    // Performance optimization: Limit analysis to recent draws for large datasets
+    const analysisDraws = historicalDraws.length > 200
+      ? historicalDraws.slice(-200)
+      : historicalDraws;
+
+    // Analyze multi-step follow-on chains
+    const followOnChains = analyzeMultiStepChains(analysisDraws, config);
+
+    // Calculate conditional probabilities
+    const conditionalProbs = calculateConditionalProbabilities(analysisDraws, config);
+
+    // Cluster patterns by similar conditions
+    const patternClusters = clusterPatterns(analysisDraws, config);
+
+    // Generate weighted probabilities across time horizons
+    const weightedProbabilities = calculateWeightedProbabilities(
+      analysisDraws,
+      followOnChains,
+      conditionalProbs,
+      patternClusters
+    );
+
+    analysis = {
+      followOnChains,
+      conditionalProbs,
+      patternClusters,
+      weightedProbabilities
+    };
+  }
 
   // Generate combinations based on advanced analysis
-  return generateCombinationsFromAnalysis(
+  const result = generateCombinationsFromAnalysis(
     combinationCount,
     selectedNumbers,
     luckyNumber,
     isDouble,
-    weightedProbabilities
+    analysis.weightedProbabilities
   );
+
+  const totalTime = Date.now() - startTime;
+  if (DEBUG) console.log(`[ADV_FOLLOW_ON] Generated ${result.length} combinations in ${totalTime}ms`);
+
+  return result;
 }
 
 /**
@@ -157,17 +198,22 @@ function calculateConditionalProbabilities(
   config: AdvancedFollowOnConfig
 ): ConditionalProbability[] {
   const conditionalProbs: ConditionalProbability[] = [];
+  const maxDrawsToAnalyze = Math.min(100, historicalDraws.length);
 
-  for (let i = 1; i < historicalDraws.length; i++) {
+  // Performance optimization: Use recent draws only and limit analysis
+  for (let i = Math.max(1, historicalDraws.length - maxDrawsToAnalyze); i < historicalDraws.length; i++) {
     const previousDraw = historicalDraws[i - 1];
     const currentDraw = historicalDraws[i];
 
     const previousNumbers = [...previousDraw.winningNumbers, previousDraw.specialNumber];
     const currentNumbers = [...currentDraw.winningNumbers, currentDraw.specialNumber];
 
-    // Analyze different trigger combinations
-    for (let triggerSize = 1; triggerSize <= 3; triggerSize++) {
-      const triggers = getNumberCombinations(previousNumbers, triggerSize);
+    // Performance optimization: Limit trigger size and use sampling for large datasets
+    const maxTriggerSize = historicalDraws.length > 50 ? 2 : 3;
+
+    for (let triggerSize = 1; triggerSize <= maxTriggerSize; triggerSize++) {
+      // Performance optimization: Use limited number of trigger combinations
+      const triggers = getNumberCombinationsOptimized(previousNumbers, triggerSize, 20);
 
       for (const trigger of triggers) {
         const matchingNumbers = currentNumbers.filter(num =>
@@ -372,27 +418,31 @@ function selectWeightedCombination(
 
 
 /**
- * Helper function to get number combinations
+ * Helper function to get number combinations with performance optimization
  */
-function getNumberCombinations(numbers: number[], size: number): number[][] {
+function getNumberCombinationsOptimized(numbers: number[], size: number, maxResults: number = 50): number[][] {
   const result: number[][] = [];
+  const numbersToUse = numbers.slice(0, Math.min(10, numbers.length)); // Limit input size
 
   function backtrack(start: number, current: number[]) {
     if (current.length === size) {
       result.push([...current]);
-      return;
+      return result.length >= maxResults; // Early termination
     }
 
-    for (let i = start; i < numbers.length; i++) {
-      current.push(numbers[i]);
-      backtrack(i + 1, current);
+    for (let i = start; i < numbersToUse.length; i++) {
+      current.push(numbersToUse[i]);
+      const shouldStop = backtrack(i + 1, current);
       current.pop();
+      if (shouldStop) return true;
     }
+    return false;
   }
 
   backtrack(0, []);
   return result;
 }
+
 
 /**
  * Calculate confidence for conditional probability
@@ -446,42 +496,44 @@ function calculatePatternSimilarity(
 }
 
 /**
- * Get advanced follow-on analysis for API
+ * Pre-calculate advanced follow-on analysis for reuse
  */
-export function getAdvancedFollowOnNumbers(
+export function calculateAdvancedFollowOnAnalysis(
   historicalDraws: DrawRecord[]
-): FollowOnResult[] {
-  const maxChainLength = 3;
-  const timeHorizons = [1, 3, 5, 10];
-  const patternThreshold = 0.7;
-  const conditionalProbabilityThreshold = 0.6;
-
-  const config = {
-    maxChainLength,
-    timeHorizons,
-    patternThreshold,
-    conditionalProbabilityThreshold
+): AdvancedFollowOnAnalysis {
+  const config: AdvancedFollowOnConfig = {
+    maxChainLength: Math.min(3, Math.floor(historicalDraws.length / 100) + 1),
+    timeHorizons: historicalDraws.length > 100 ? [1, 3, 5, 10] : [1, 3],
+    patternThreshold: 0.7,
+    conditionalProbabilityThreshold: 0.6
   };
 
-  const followOnChains = analyzeMultiStepChains(historicalDraws, config);
-  const conditionalProbs = calculateConditionalProbabilities(historicalDraws, config);
-  const patternClusters = clusterPatterns(historicalDraws, config);
+  // Performance optimization: Limit analysis to recent draws for large datasets
+  const analysisDraws = historicalDraws.length > 200
+    ? historicalDraws.slice(-200)
+    : historicalDraws;
+
+  // Analyze multi-step follow-on chains
+  const followOnChains = analyzeMultiStepChains(analysisDraws, config);
+
+  // Calculate conditional probabilities
+  const conditionalProbs = calculateConditionalProbabilities(analysisDraws, config);
+
+  // Cluster patterns by similar conditions
+  const patternClusters = clusterPatterns(analysisDraws, config);
+
+  // Generate weighted probabilities across time horizons
   const weightedProbabilities = calculateWeightedProbabilities(
-    historicalDraws,
+    analysisDraws,
     followOnChains,
     conditionalProbs,
     patternClusters
   );
 
-  // Convert to FollowOnResult format
-  const results: FollowOnResult[] = [];
-  for (const [number, probability] of weightedProbabilities) {
-    results.push({
-      number,
-      weight: probability * 100 // Convert to percentage
-    });
-  }
-
-  // Sort by weight (descending)
-  return results.sort((a, b) => b.weight - a.weight);
+  return {
+    followOnChains,
+    conditionalProbs,
+    patternClusters,
+    weightedProbabilities
+  };
 }

@@ -1,9 +1,12 @@
 import { DrawRecord, EnsembleResult } from '../types';
 import { generateClassicCombinationsOptimized } from './classic-optimized';
 import { generateFollowOnCombinations } from './follow-on';
-import { generateAdvancedFollowOnCombinations } from '../analysis/advanced-follow-on';
+import { generateAdvancedFollowOnCombinations } from './advanced-follow-on';
 import { getHistoricalFrequency } from '../analysis/frequency';
 import { getFollowOnNumbers } from '../analysis/follow-on';
+
+// Debug flag to control logging
+const DEBUG = process.env.DEBUG === 'true' || false;
 
 /**
  * Ensemble generation algorithm combining multiple statistical models
@@ -20,8 +23,10 @@ export function generateEnsembleCombinations(
   preCalculatedWeights?: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
 ): EnsembleResult[] {
   const startTime = Date.now();
-  console.log(`[ENSEMBLE] Starting ensemble generation for ${combinationCount} combinations`);
-  console.log(`[ENSEMBLE] Historical draws: ${historicalDraws.length}, Selected numbers: ${selectedNumbers.length}`);
+  if (DEBUG) {
+    console.log(`[ENSEMBLE] Starting ensemble generation for ${combinationCount} combinations`);
+    console.log(`[ENSEMBLE] Historical draws: ${historicalDraws.length}, Selected numbers: ${selectedNumbers.length}`);
+  }
 
   if (!historicalDraws || historicalDraws.length === 0) {
     throw new Error('No historical data provided');
@@ -30,9 +35,11 @@ export function generateEnsembleCombinations(
   // Use pre-calculated weights or calculate new ones
   const modelWeightsStart = Date.now();
   const modelWeights = preCalculatedWeights || calculateModelWeights(historicalDraws);
-  console.log(`[ENSEMBLE] Model weights calculation: ${Date.now() - modelWeightsStart}ms`);
-  if (preCalculatedWeights) {
-    console.log(`[ENSEMBLE] Using pre-calculated model weights`);
+  if (DEBUG) {
+    console.log(`[ENSEMBLE] Model weights calculation: ${Date.now() - modelWeightsStart}ms`);
+    if (preCalculatedWeights) {
+      console.log(`[ENSEMBLE] Using pre-calculated model weights`);
+    }
   }
 
   // Generate combinations from each model
@@ -44,7 +51,7 @@ export function generateEnsembleCombinations(
     isDouble,
     historicalDraws
   );
-  console.log(`[ENSEMBLE] Classic combinations: ${Date.now() - classicStart}ms`);
+  if (DEBUG) console.log(`[ENSEMBLE] Classic combinations: ${Date.now() - classicStart}ms`);
 
   const followOnStart = Date.now();
   const followOnResults = lastDrawNumbers ? generateFollowOnCombinations(
@@ -55,19 +62,19 @@ export function generateEnsembleCombinations(
     historicalDraws,
     lastDrawNumbers
   ) : [];
-  console.log(`[ENSEMBLE] Follow-on combinations: ${Date.now() - followOnStart}ms`);
+  if (DEBUG) console.log(`[ENSEMBLE] Follow-on combinations: ${Date.now() - followOnStart}ms`);
 
   // Get frequency-based numbers
   const frequencyStart = Date.now();
   const frequencyResults = getHistoricalFrequency(historicalDraws, 'hot');
   const frequencyNumbers = frequencyResults.slice(0, 15).map(r => r.number);
-  console.log(`[ENSEMBLE] Frequency analysis: ${Date.now() - frequencyStart}ms`);
+  if (DEBUG) console.log(`[ENSEMBLE] Frequency analysis: ${Date.now() - frequencyStart}ms`);
 
   // Get follow-on numbers for Bayesian integration
   const followOnPatternsStart = Date.now();
   const followOnPatterns = lastDrawNumbers ? getFollowOnNumbers(historicalDraws) : [];
   const followOnNumbers = followOnPatterns.slice(0, 15).map(r => r.number);
-  console.log(`[ENSEMBLE] Follow-on patterns: ${Date.now() - followOnPatternsStart}ms`);
+  if (DEBUG) console.log(`[ENSEMBLE] Follow-on patterns: ${Date.now() - followOnPatternsStart}ms`);
 
   // Generate Bayesian-weighted combinations
   const bayesianStart = Date.now();
@@ -80,7 +87,7 @@ export function generateEnsembleCombinations(
     frequencyNumbers,
     followOnNumbers
   );
-  console.log(`[ENSEMBLE] Bayesian combinations: ${Date.now() - bayesianStart}ms`);
+  if (DEBUG) console.log(`[ENSEMBLE] Bayesian combinations: ${Date.now() - bayesianStart}ms`);
 
   // Combine all candidates with weighted selection
   const combineStart = Date.now();
@@ -89,21 +96,23 @@ export function generateEnsembleCombinations(
     ...followOnResults.map(r => ({ combination: r.combination, model: 'followOn' as const })),
     ...bayesianResults.map(r => ({ combination: r.combination, model: 'bayesian' as const }))
   ];
-  console.log(`[ENSEMBLE] Total candidates: ${allCandidates.length}`);
-  console.log(`[ENSEMBLE] Candidate combination: ${Date.now() - combineStart}ms`);
+  if (DEBUG) {
+    console.log(`[ENSEMBLE] Total candidates: ${allCandidates.length}`);
+    console.log(`[ENSEMBLE] Candidate combination: ${Date.now() - combineStart}ms`);
+  }
 
   // Score and select best combinations
   const scoringStart = Date.now();
   const scoredCandidates = scoreCandidates(allCandidates, historicalDraws, modelWeights);
-  console.log(`[ENSEMBLE] Candidate scoring: ${Date.now() - scoringStart}ms`);
+  if (DEBUG) console.log(`[ENSEMBLE] Candidate scoring: ${Date.now() - scoringStart}ms`);
 
   // Select top combinations with diversity
   const selectionStart = Date.now();
   const finalCombinations = selectDiverseCombinations(scoredCandidates, combinationCount);
-  console.log(`[ENSEMBLE] Final selection: ${Date.now() - selectionStart}ms`);
+  if (DEBUG) console.log(`[ENSEMBLE] Final selection: ${Date.now() - selectionStart}ms`);
 
   const totalTime = Date.now() - startTime;
-  console.log(`[ENSEMBLE] Total ensemble generation time: ${totalTime}ms`);
+  if (DEBUG) console.log(`[ENSEMBLE] Total ensemble generation time: ${totalTime}ms`);
 
   return finalCombinations.map(({ combination, confidence }, index) => ({
     combination,
@@ -121,7 +130,7 @@ export function calculateModelWeights(historicalDraws: DrawRecord[]): { classic:
 
   if (historicalDraws.length < 20) {
     // Default weights for insufficient data
-    console.log(`[MODEL_WEIGHTS] Using default weights (insufficient data): ${Date.now() - startTime}ms`);
+    if (DEBUG) console.log(`[MODEL_WEIGHTS] Using default weights (insufficient data): ${Date.now() - startTime}ms`);
     return { classic: 0.25, followOn: 0.2, advancedFollowOn: 0.2, frequency: 0.15, bayesian: 0.2 };
   }
 
@@ -130,28 +139,28 @@ export function calculateModelWeights(historicalDraws: DrawRecord[]): { classic:
   const testData = historicalDraws.slice(-testSize);
   const trainingData = historicalDraws.slice(0, -testSize);
 
-  console.log(`[MODEL_WEIGHTS] Test data: ${testData.length}, Training data: ${trainingData.length}`);
+  if (DEBUG) console.log(`[MODEL_WEIGHTS] Test data: ${testData.length}, Training data: ${trainingData.length}`);
 
   // Calculate performance scores for each model
   const classicStart = Date.now();
   const classicScore = evaluateModelPerformance('classic', trainingData, testData);
-  console.log(`[MODEL_WEIGHTS] Classic evaluation: ${Date.now() - classicStart}ms`);
+  if (DEBUG) console.log(`[MODEL_WEIGHTS] Classic evaluation: ${Date.now() - classicStart}ms`);
 
   const followOnStart = Date.now();
   const followOnScore = evaluateModelPerformance('followOn', trainingData, testData);
-  console.log(`[MODEL_WEIGHTS] Follow-on evaluation: ${Date.now() - followOnStart}ms`);
+  if (DEBUG) console.log(`[MODEL_WEIGHTS] Follow-on evaluation: ${Date.now() - followOnStart}ms`);
 
   const advancedFollowOnStart = Date.now();
   const advancedFollowOnScore = evaluateModelPerformance('advancedFollowOn', trainingData, testData);
-  console.log(`[MODEL_WEIGHTS] Advanced follow-on evaluation: ${Date.now() - advancedFollowOnStart}ms`);
+  if (DEBUG) console.log(`[MODEL_WEIGHTS] Advanced follow-on evaluation: ${Date.now() - advancedFollowOnStart}ms`);
 
   const frequencyStart = Date.now();
   const frequencyScore = evaluateModelPerformance('frequency', trainingData, testData);
-  console.log(`[MODEL_WEIGHTS] Frequency evaluation: ${Date.now() - frequencyStart}ms`);
+  if (DEBUG) console.log(`[MODEL_WEIGHTS] Frequency evaluation: ${Date.now() - frequencyStart}ms`);
 
   const bayesianStart = Date.now();
   const bayesianScore = evaluateModelPerformance('bayesian', trainingData, testData);
-  console.log(`[MODEL_WEIGHTS] Bayesian evaluation: ${Date.now() - bayesianStart}ms`);
+  if (DEBUG) console.log(`[MODEL_WEIGHTS] Bayesian evaluation: ${Date.now() - bayesianStart}ms`);
 
   const scores = {
     classic: classicScore,
@@ -172,8 +181,10 @@ export function calculateModelWeights(historicalDraws: DrawRecord[]): { classic:
     bayesian: scores.bayesian / totalScore
   };
 
-  console.log(`[MODEL_WEIGHTS] Final weights: ${JSON.stringify(result)}`);
-  console.log(`[MODEL_WEIGHTS] Total model weights calculation: ${Date.now() - startTime}ms`);
+  if (DEBUG) {
+    console.log(`[MODEL_WEIGHTS] Final weights: ${JSON.stringify(result)}`);
+    console.log(`[MODEL_WEIGHTS] Total model weights calculation: ${Date.now() - startTime}ms`);
+  }
 
   return result;
 }
