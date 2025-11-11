@@ -25,7 +25,7 @@ export default function BuyMeACoffee({ language }: BuyMeACoffeeProps) {
         onMouseLeave={() => setIsHovered(false)}
       >
         <img
-          src="/bmc-brand-logo.svg"
+          src={language === 'zh-TW' ? "/bmc-brand-logo-zh.png" : "/bmc-brand-logo.svg"}
           alt="Buy Me a Coffee"
           className="w-32 h-auto"
         />
