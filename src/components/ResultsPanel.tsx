@@ -66,95 +66,54 @@ export default function ResultsPanel({
       );
     }
 
+    // For x2 combinations, ensure split numbers are at the end
+    const displayNumbers = isDouble && splitNumbers.length > 0
+      ? [
+          ...numbers.filter(n => !splitNumbers.includes(n)), // 5 common numbers
+          ...splitNumbers // 2 split numbers at the end
+        ]
+      : numbers;
+
     return (
       <div key={combination.id} className="flex items-center gap-2 mb-3">
         <span className="text-sm font-medium text-gray-600 w-6 text-right">
           {index + 1})
         </span>
-        <div className="flex flex-col gap-1">
-          {/* Main combination display - show only the 5 common numbers for split combinations */}
-          <div className="flex items-center gap-1">
-            {(isDouble && splitNumbers.length > 0 ? numbers.filter(n => !splitNumbers.includes(n)) : numbers).map((number, idx) => {
-              let highlight: 'winning' | 'special' | 'none' = 'none';
+        <div className="flex items-center gap-1">
+          {displayNumbers.map((number, idx) => {
+            let highlight: 'winning' | 'special' | 'none' = 'none';
 
-              if (drawResults) {
-                if (drawResults.winningNumbers.includes(number)) {
-                  highlight = 'winning';
-                } else if (drawResults.specialNumber === number) {
-                  highlight = 'special';
-                }
+            if (drawResults) {
+              if (drawResults.winningNumbers.includes(number)) {
+                highlight = 'winning';
+              } else if (drawResults.specialNumber === number) {
+                highlight = 'special';
               }
+            }
 
-              // Add separator for double combinations (after 5th number)
-              if (isDouble && idx === 4) {
-                return (
-                  <div key={`${combination.id}-${idx}`} className="flex items-center">
-                    <span className="mx-1 text-gray-400 font-bold">+</span>
-                    <NumberBall
-                      number={number}
-                      size="md"
-                      highlight={highlight}
-                    />
-                  </div>
-                );
-              }
-
+            // Add separator for double combinations (after 5th number)
+            if (isDouble && idx === 5) {
               return (
-                <NumberBall
-                  key={`${combination.id}-${idx}`}
-                  number={number}
-                  size="md"
-                  highlight={highlight}
-                />
+                <div key={`${combination.id}-${idx}`} className="flex items-center">
+                  <span className="mx-1 text-gray-400 font-bold">+</span>
+                  <NumberBall
+                    number={number}
+                    size="md"
+                    highlight={highlight}
+                  />
+                </div>
               );
-            })}
-          </div>
+            }
 
-          {/* Split numbers display for partial bets */}
-          {isDouble && splitNumbers.length > 0 && (
-            <div className="flex flex-col gap-1 text-xs text-gray-600 ml-2">
-              <div className="flex items-center gap-1">
-                <span className="font-medium">Split:</span>
-                {splitNumbers.map((number, idx) => (
-                  <div key={`split-${combination.id}-${idx}`} className="flex items-center">
-                    {idx > 0 && <span className="mx-1">+</span>}
-                    <NumberBall
-                      number={number}
-                      size="sm"
-                      highlight="none"
-                    />
-                  </div>
-                ))}
-                <span className="ml-2 text-gray-400">(Partial bet)</span>
-              </div>
-              
-              {/* Show the two resulting combinations */}
-              <div className="flex flex-col gap-1 ml-4">
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-500">A:</span>
-                  {numbers.filter(n => n !== splitNumbers[1]).map((number, idx) => (
-                    <NumberBall
-                      key={`split-a-${combination.id}-${idx}`}
-                      number={number}
-                      size="sm"
-                      highlight="none"
-                    />
-                  ))}
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-500">B:</span>
-                  {numbers.filter(n => n !== splitNumbers[0]).map((number, idx) => (
-                    <NumberBall
-                      key={`split-b-${combination.id}-${idx}`}
-                      number={number}
-                      size="sm"
-                      highlight="none"
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+            return (
+              <NumberBall
+                key={`${combination.id}-${idx}`}
+                number={number}
+                size="md"
+                highlight={highlight}
+              />
+            );
+          })}
         </div>
       </div>
     );
