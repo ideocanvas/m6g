@@ -122,8 +122,31 @@ export default function ResultsPanel({
     );
   };
 
+  // Get all unique numbers from combinations for matching
+  const getAllUniqueNumbersFromCombinations = () => {
+    const allNumbers = new Set<number>();
+    
+    combinations.forEach(combination => {
+      if (combination.combinationNumbers && Array.isArray(combination.combinationNumbers)) {
+        combination.combinationNumbers.forEach(number => {
+          allNumbers.add(number);
+        });
+      }
+      if (combination.splitNumbers && Array.isArray(combination.splitNumbers)) {
+        combination.splitNumbers.forEach(number => {
+          allNumbers.add(number);
+        });
+      }
+    });
+    
+    return Array.from(allNumbers);
+  };
+
   const renderDrawResults = () => {
     if (!drawResults) return null;
+
+    // Get all unique numbers from combinations
+    const allCombinationNumbers = getAllUniqueNumbersFromCombinations();
 
     return (
       <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -131,19 +154,23 @@ export default function ResultsPanel({
           {labels[language].draw_results} - {drawResults.dateText}
         </h3>
         <div className="flex items-center gap-2 mb-4">
-          {drawResults.winningNumbers?.map((number: number, index: number) => (
-            <NumberBall
-              key={`winning-${index}`}
-              number={number}
-              size="lg"
-              highlight="winning"
-            />
-          ))}
+          {drawResults.winningNumbers?.map((number: number, index: number) => {
+            // Only highlight winning numbers that appear in any combination
+            const shouldHighlight = allCombinationNumbers.includes(number);
+            return (
+              <NumberBall
+                key={`winning-${index}`}
+                number={number}
+                size="lg"
+                highlight={shouldHighlight ? 'winning' : 'none'}
+              />
+            );
+          })}
           <span className="mx-2 text-xl font-bold text-gray-600">+</span>
           <NumberBall
             number={drawResults.specialNumber}
             size="lg"
-            highlight="special"
+            highlight={allCombinationNumbers.includes(drawResults.specialNumber) ? 'special' : 'none'}
           />
         </div>
 
