@@ -17,14 +17,21 @@ export function generateEnsembleCombinations(
   historicalDraws: DrawRecord[],
   lastDrawNumbers?: number[]
 ): EnsembleResult[] {
+  const startTime = Date.now();
+  console.log(`[ENSEMBLE] Starting ensemble generation for ${combinationCount} combinations`);
+  console.log(`[ENSEMBLE] Historical draws: ${historicalDraws.length}, Selected numbers: ${selectedNumbers.length}`);
+
   if (!historicalDraws || historicalDraws.length === 0) {
     throw new Error('No historical data provided');
   }
 
   // Calculate model weights based on recent performance
+  const modelWeightsStart = Date.now();
   const modelWeights = calculateModelWeights(historicalDraws);
+  console.log(`[ENSEMBLE] Model weights calculation: ${Date.now() - modelWeightsStart}ms`);
 
   // Generate combinations from each model
+  const classicStart = Date.now();
   const classicResults = generateClassicCombinations(
     combinationCount * 2, // Generate more for selection
     selectedNumbers,
@@ -32,7 +39,9 @@ export function generateEnsembleCombinations(
     isDouble,
     historicalDraws
   );
+  console.log(`[ENSEMBLE] Classic combinations: ${Date.now() - classicStart}ms`);
 
+  const followOnStart = Date.now();
   const followOnResults = lastDrawNumbers ? generateFollowOnCombinations(
     combinationCount * 2,
     selectedNumbers,
@@ -41,16 +50,22 @@ export function generateEnsembleCombinations(
     historicalDraws,
     lastDrawNumbers
   ) : [];
+  console.log(`[ENSEMBLE] Follow-on combinations: ${Date.now() - followOnStart}ms`);
 
   // Get frequency-based numbers
+  const frequencyStart = Date.now();
   const frequencyResults = getHistoricalFrequency(historicalDraws, 'hot');
   const frequencyNumbers = frequencyResults.slice(0, 15).map(r => r.number);
+  console.log(`[ENSEMBLE] Frequency analysis: ${Date.now() - frequencyStart}ms`);
 
   // Get follow-on numbers for Bayesian integration
+  const followOnPatternsStart = Date.now();
   const followOnPatterns = lastDrawNumbers ? getFollowOnNumbers(historicalDraws) : [];
   const followOnNumbers = followOnPatterns.slice(0, 15).map(r => r.number);
+  console.log(`[ENSEMBLE] Follow-on patterns: ${Date.now() - followOnPatternsStart}ms`);
 
   // Generate Bayesian-weighted combinations
+  const bayesianStart = Date.now();
   const bayesianResults = generateBayesianCombinations(
     combinationCount * 2,
     selectedNumbers,
@@ -60,19 +75,30 @@ export function generateEnsembleCombinations(
     frequencyNumbers,
     followOnNumbers
   );
+  console.log(`[ENSEMBLE] Bayesian combinations: ${Date.now() - bayesianStart}ms`);
 
   // Combine all candidates with weighted selection
+  const combineStart = Date.now();
   const allCandidates = [
     ...classicResults.map(r => ({ combination: r.combination, model: 'classic' as const })),
     ...followOnResults.map(r => ({ combination: r.combination, model: 'followOn' as const })),
     ...bayesianResults.map(r => ({ combination: r.combination, model: 'bayesian' as const }))
   ];
+  console.log(`[ENSEMBLE] Total candidates: ${allCandidates.length}`);
+  console.log(`[ENSEMBLE] Candidate combination: ${Date.now() - combineStart}ms`);
 
   // Score and select best combinations
+  const scoringStart = Date.now();
   const scoredCandidates = scoreCandidates(allCandidates, historicalDraws, modelWeights);
+  console.log(`[ENSEMBLE] Candidate scoring: ${Date.now() - scoringStart}ms`);
 
   // Select top combinations with diversity
+  const selectionStart = Date.now();
   const finalCombinations = selectDiverseCombinations(scoredCandidates, combinationCount);
+  console.log(`[ENSEMBLE] Final selection: ${Date.now() - selectionStart}ms`);
+
+  const totalTime = Date.now() - startTime;
+  console.log(`[ENSEMBLE] Total ensemble generation time: ${totalTime}ms`);
 
   return finalCombinations.map(({ combination, confidence }, index) => ({
     combination,
@@ -86,8 +112,11 @@ export function generateEnsembleCombinations(
  * Calculate dynamic weights for each model based on recent performance
  */
 function calculateModelWeights(historicalDraws: DrawRecord[]): { classic: number; followOn: number; frequency: number; bayesian: number } {
+  const startTime = Date.now();
+
   if (historicalDraws.length < 20) {
     // Default weights for insufficient data
+    console.log(`[MODEL_WEIGHTS] Using default weights (insufficient data): ${Date.now() - startTime}ms`);
     return { classic: 0.3, followOn: 0.3, frequency: 0.2, bayesian: 0.2 };
   }
 
@@ -96,23 +125,46 @@ function calculateModelWeights(historicalDraws: DrawRecord[]): { classic: number
   const testData = historicalDraws.slice(-testSize);
   const trainingData = historicalDraws.slice(0, -testSize);
 
+  console.log(`[MODEL_WEIGHTS] Test data: ${testData.length}, Training data: ${trainingData.length}`);
+
   // Calculate performance scores for each model
+  const classicStart = Date.now();
+  const classicScore = evaluateModelPerformance('classic', trainingData, testData);
+  console.log(`[MODEL_WEIGHTS] Classic evaluation: ${Date.now() - classicStart}ms`);
+
+  const followOnStart = Date.now();
+  const followOnScore = evaluateModelPerformance('followOn', trainingData, testData);
+  console.log(`[MODEL_WEIGHTS] Follow-on evaluation: ${Date.now() - followOnStart}ms`);
+
+  const frequencyStart = Date.now();
+  const frequencyScore = evaluateModelPerformance('frequency', trainingData, testData);
+  console.log(`[MODEL_WEIGHTS] Frequency evaluation: ${Date.now() - frequencyStart}ms`);
+
+  const bayesianStart = Date.now();
+  const bayesianScore = evaluateModelPerformance('bayesian', trainingData, testData);
+  console.log(`[MODEL_WEIGHTS] Bayesian evaluation: ${Date.now() - bayesianStart}ms`);
+
   const scores = {
-    classic: evaluateModelPerformance('classic', trainingData, testData),
-    followOn: evaluateModelPerformance('followOn', trainingData, testData),
-    frequency: evaluateModelPerformance('frequency', trainingData, testData),
-    bayesian: evaluateModelPerformance('bayesian', trainingData, testData)
+    classic: classicScore,
+    followOn: followOnScore,
+    frequency: frequencyScore,
+    bayesian: bayesianScore
   };
 
   // Normalize weights to sum to 1
   const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
 
-  return {
+  const result = {
     classic: scores.classic / totalScore,
     followOn: scores.followOn / totalScore,
     frequency: scores.frequency / totalScore,
     bayesian: scores.bayesian / totalScore
   };
+
+  console.log(`[MODEL_WEIGHTS] Final weights: ${JSON.stringify(result)}`);
+  console.log(`[MODEL_WEIGHTS] Total model weights calculation: ${Date.now() - startTime}ms`);
+
+  return result;
 }
 
 /**
