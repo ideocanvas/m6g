@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Mark Six Generator",
-  description: "Generate Mark Six lottery combinations with AI assistance",
+  description: "Generate Mark Six lottery combinations with AI assistance. For entertainment purposes only - no guarantee of winning.",
 };
 
 export default function RootLayout({

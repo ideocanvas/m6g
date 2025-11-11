@@ -76,6 +76,14 @@ export interface LanguageLabels {
   qimen_ai_button: string;
   saved_generations: string;
   confirm_delete_generation: string;
+  disclaimer_title: string;
+  disclaimer_content: string;
+  gambling_warning: string;
+  no_guarantee: string;
+  for_entertainment: string;
+  legal_age_required: string;
+  gamble_responsibly: string;
+  seek_help_if_needed: string;
 }
 
 export type LanguageCode = 'en' | 'zh-TW';
@@ -155,7 +163,15 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     ai_prompt_button: 'AI Prompt',
     qimen_ai_button: 'AI Prompt (QiMen)',
     saved_generations: 'Saved Generations',
-    confirm_delete_generation: 'Are you sure you want to delete this generation?'
+    confirm_delete_generation: 'Are you sure you want to delete this generation?',
+    disclaimer_title: 'Important Disclaimer',
+    disclaimer_content: 'This application is for entertainment purposes only and does not guarantee winning lottery numbers. All generated combinations are based on statistical analysis and should not be considered as financial advice.',
+    gambling_warning: 'Gambling involves risk. Please gamble responsibly.',
+    no_guarantee: 'No guarantee of winning. Past results do not predict future outcomes.',
+    for_entertainment: 'For entertainment purposes only.',
+    legal_age_required: 'You must be of legal age to participate in lottery games.',
+    gamble_responsibly: 'Gamble responsibly. Set limits and stick to them.',
+    seek_help_if_needed: 'If you think you have a gambling problem, seek help from professional organizations.'
   },
   'zh-TW': {
     title: '六合彩生成器',
@@ -231,7 +247,15 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     ai_prompt_button: 'AI 提示',
     qimen_ai_button: 'AI 提示 (奇門)',
     saved_generations: '已保存的生成記錄',
-    confirm_delete_generation: '確定要刪除此生成記錄嗎？'
+    confirm_delete_generation: '確定要刪除此生成記錄嗎？',
+    disclaimer_title: '重要免責聲明',
+    disclaimer_content: '本應用程式僅供娛樂用途，不保證中獎號碼。所有生成的組合均基於統計分析，不應被視為財務建議。',
+    gambling_warning: '賭博涉及風險。請負責任地賭博。',
+    no_guarantee: '不保證中獎。過往結果不代表未來表現。',
+    for_entertainment: '僅供娛樂用途。',
+    legal_age_required: '您必須達到法定年齡才能參與彩票遊戲。',
+    gamble_responsibly: '請負責任地賭博。設定限制並遵守。',
+    seek_help_if_needed: '如果您認為自己有賭博問題，請向專業組織尋求幫助。'
   }
 };
 
