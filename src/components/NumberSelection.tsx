@@ -449,6 +449,13 @@ export default function NumberSelection({
           </button>
         </div>
 
+        {/* Separator */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-px bg-gray-200"></div>
+          <span className="text-xs text-gray-400 px-2">{labels[language].or}</span>
+          <div className="flex-1 h-px bg-gray-200"></div>
+        </div>
+
         {/* Generate Button */}
         <button
           onClick={onGenerate}

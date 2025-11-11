@@ -85,6 +85,7 @@ export interface LanguageLabels {
   legal_age_required: string;
   gamble_responsibly: string;
   seek_help_if_needed: string;
+  or: string;
 }
 
 export type LanguageCode = 'en' | 'zh-TW';
@@ -173,7 +174,8 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     for_entertainment: 'For entertainment purposes only.',
     legal_age_required: 'You must be of legal age to participate in lottery games.',
     gamble_responsibly: 'Gamble responsibly. Set limits and stick to them.',
-    seek_help_if_needed: 'If you think you have a gambling problem, seek help from professional organizations.'
+    seek_help_if_needed: 'If you think you have a gambling problem, seek help from professional organizations.',
+    or: 'or'
   },
   'zh-TW': {
     title: '六合彩生成器',
@@ -258,7 +260,8 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     for_entertainment: '僅供娛樂用途。',
     legal_age_required: '您必須達到法定年齡才能參與彩票遊戲。',
     gamble_responsibly: '請負責任地賭博。設定限制並遵守。',
-    seek_help_if_needed: '如果您認為自己有賭博問題，請向專業組織尋求幫助。'
+    seek_help_if_needed: '如果您認為自己有賭博問題，請向專業組織尋求幫助。',
+    or: '或'
   }
 };
 
