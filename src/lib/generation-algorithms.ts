@@ -224,28 +224,6 @@ async function generateNumbersImpl(
   return generatedCombinations;
 }
 
-
-// Placeholder functions for AI and QiMen generation
-export async function generateAICombinations(
-  combinationCount: number,
-  selectedNumbers: number[],
-  luckyNumber: number,
-  isDouble: boolean
-): Promise<number[][]> {
-  // TODO: Implement AI generation using external API
-  return generateNumbersImpl(combinationCount, selectedNumbers, luckyNumber, isDouble);
-}
-
-export async function generateQiMenCombinations(
-  combinationCount: number,
-  selectedNumbers: number[],
-  luckyNumber: number,
-  isDouble: boolean
-): Promise<number[][]> {
-  // TODO: Implement Qi Men Dun Jia generation
-  return generateNumbersImpl(combinationCount, selectedNumbers, luckyNumber, isDouble);
-}
-
 /**
  * Generate AI prompt for standard number generation
  * Based on reference implementation from MarkSizAPI.js

@@ -48,7 +48,7 @@ export interface GenerationParams {
   selectedNumbers: number[];
   luckyNumber: number;
   isDouble: boolean;
-  generationMethod: 'v1' | 'v2' | 'ai' | 'qimen';
+  generationMethod: 'ensemble' | 'bayesian' | 'ai' | 'qimen';
 }
 
 export interface ApiResponse<T> {
@@ -63,18 +63,19 @@ export interface NumberSelectionProps {
   luckyNumber: number | null;
   combinationCount: number;
   isDouble: boolean;
-  generationMethod: 'v1' | 'v2';
+  generationMethod: 'ensemble' | 'bayesian';
   language: 'en' | 'zh-TW';
   onNumberToggle: (number: number) => void;
   onLuckyNumberChange: (number: number | null) => void;
   onCombinationCountChange: (count: number) => void;
   onIsDoubleChange: (isDouble: boolean) => void;
-  onGenerationMethodChange: (method: 'v1' | 'v2') => void;
+  onGenerationMethodChange: (method: 'ensemble' | 'bayesian') => void;
   onClearSelection: () => void;
   onSelectAll: () => void;
   onSuggestNumbers: (type: 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced', count: number) => void;
   onGenerate: () => void;
   requiredCount: number;
+  isGenerating?: boolean;
 }
 
 export interface ResultsPanelProps {

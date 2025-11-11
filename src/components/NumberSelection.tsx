@@ -24,6 +24,7 @@ export default function NumberSelection({
   onSuggestNumbers,
   onGenerate,
   requiredCount,
+  isGenerating = false,
 }: NumberSelectionProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [lastSuggestionType, setLastSuggestionType] = useState<string | null>(null);
@@ -188,24 +189,24 @@ export default function NumberSelection({
         </label>
         <div className="flex bg-gray-100 rounded-lg p-1">
           <button
-            onClick={() => onGenerationMethodChange('v2')}
+            onClick={() => onGenerationMethodChange('ensemble')}
             className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-              generationMethod === 'v2'
+              generationMethod === 'ensemble'
                 ? 'bg-white shadow-sm text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            {labels[language].follow_on_logic}
+            {labels[language].ensemble_logic}
           </button>
           <button
-            onClick={() => onGenerationMethodChange('v1')}
+            onClick={() => onGenerationMethodChange('bayesian')}
             className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-              generationMethod === 'v1'
+              generationMethod === 'bayesian'
                 ? 'bg-white shadow-sm text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            {labels[language].classic_logic}
+            {labels[language].bayesian_logic}
           </button>
         </div>
       </div>
@@ -408,7 +409,7 @@ export default function NumberSelection({
             ) : (
               <>
                 <span>🧮</span>
-                <span>AI Gen</span>
+                <span>{labels[language].ai_prompt_button}</span>
               </>
             )}
           </button>
@@ -422,7 +423,7 @@ export default function NumberSelection({
             ) : (
               <>
                 <span>☯️</span>
-                <span>AI Pro</span>
+                <span>{labels[language].qimen_ai_button}</span>
               </>
             )}
           </button>
@@ -431,10 +432,17 @@ export default function NumberSelection({
         {/* Generate Button */}
         <button
           onClick={onGenerate}
-          disabled={!luckyNumber || selectedNumbers.length < requiredCount}
-          className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-semibold text-lg"
+          disabled={!luckyNumber || selectedNumbers.length < requiredCount || isGenerating}
+          className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-semibold text-lg flex items-center justify-center gap-2"
         >
-          {labels[language].generate}
+          {isGenerating ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>{labels[language].generating}</span>
+            </>
+          ) : (
+            labels[language].generate
+          )}
         </button>
       </div>
     </div>

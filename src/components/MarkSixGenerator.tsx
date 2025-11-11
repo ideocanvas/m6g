@@ -16,9 +16,10 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   const [combinations, setCombinations] = useState<Combination[]>([]);
   const [currentGenerationId, setCurrentGenerationId] = useState<string>('');
   const [drawResults, setDrawResults] = useState<DrawResult | null>(null);
-  const [generationMethod, setGenerationMethod] = useState<'v1' | 'v2'>('v2');
+  const [generationMethod, setGenerationMethod] = useState<'ensemble' | 'bayesian'>('ensemble');
   const [combinationCount, setCombinationCount] = useState<number>(4);
   const [isDouble, setIsDouble] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   // Generate a unique generation ID
   const generateGenerationId = () => {
@@ -56,6 +57,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
       return;
     }
 
+    setIsGenerating(true);
     const generationId = generateGenerationId();
     setCurrentGenerationId(generationId);
 
@@ -84,6 +86,8 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
     } catch (error) {
       console.error('Error generating combinations:', error);
       alert('Failed to generate combinations. Please try again.');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -203,6 +207,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
           onSuggestNumbers={suggestNumbers}
           onGenerate={generateCombinations}
           requiredCount={getRequiredCount()}
+          isGenerating={isGenerating}
         />
       </div>
 

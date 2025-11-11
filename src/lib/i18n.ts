@@ -9,6 +9,7 @@ export interface LanguageLabels {
   lucky_number: string;
   select_lucky_number: string;
   generate: string;
+  generating: string;
   generate_ai_prompt: string;
   record_id: string;
   select_saved_record: string;
@@ -25,8 +26,8 @@ export interface LanguageLabels {
   share_link_copied: string;
   copy_failed: string;
   generation_method: string;
-  follow_on_logic: string;
-  classic_logic: string;
+  ensemble_logic: string;
+  bayesian_logic: string;
   suggest_hot_follow_on: string;
   suggest_most_frequent: string;
   suggest_least_frequent: string;
@@ -71,6 +72,8 @@ export interface LanguageLabels {
   remove_x_numbers: string;
   remove_x_numbers_suggestion: string;
   extra_numbers: string;
+  ai_prompt_button: string;
+  qimen_ai_button: string;
 }
 
 export type LanguageCode = 'en' | 'zh-TW';
@@ -84,6 +87,7 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     lucky_number: 'Lucky Number:',
     select_lucky_number: 'Select Lucky Number',
     generate: 'Generate',
+    generating: 'Generating...',
     generate_ai_prompt: 'Generate AI Prompt',
     record_id: 'Record #',
     select_saved_record: 'Select Saved Record',
@@ -100,8 +104,8 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     share_link_copied: 'Share link copied to clipboard!',
     copy_failed: 'Copy failed!',
     generation_method: 'Generation Method:',
-    follow_on_logic: 'Follow-on Logic',
-    classic_logic: 'Classic Logic',
+    ensemble_logic: 'Ensemble Logic',
+    bayesian_logic: 'Bayesian Logic',
     suggest_hot_follow_on: 'Suggest: Hot Follow-on',
     suggest_most_frequent: 'Suggest: Most Frequent',
     suggest_least_frequent: 'Suggest: Least Frequent',
@@ -145,7 +149,9 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     quick_select: 'Quick Select',
     remove_x_numbers: 'Remove {count} numbers',
     remove_x_numbers_suggestion: 'You have selected {extra} extra numbers. Consider removing {count} numbers.',
-    extra_numbers: '({count} extra)'
+    extra_numbers: '({count} extra)',
+    ai_prompt_button: 'AI Prompt',
+    qimen_ai_button: 'QiMen AI'
   },
   'zh-TW': {
     title: '六合彩生成器',
@@ -155,6 +161,7 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     lucky_number: '幸運號碼：',
     select_lucky_number: '選擇幸運號碼',
     generate: '生成',
+    generating: '生成中...',
     generate_ai_prompt: '生成 AI 提示',
     record_id: '記錄#',
     select_saved_record: '選擇保存的記錄',
@@ -171,8 +178,8 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     share_link_copied: '分享連結已複製！',
     copy_failed: '複製失敗！',
     generation_method: '生成方式：',
-    follow_on_logic: '跟隨邏輯',
-    classic_logic: '經典邏輯',
+    ensemble_logic: '集成邏輯',
+    bayesian_logic: '貝葉斯邏輯',
     suggest_hot_follow_on: '建議：熱門跟隨',
     suggest_most_frequent: '建議：最頻繁',
     suggest_least_frequent: '建議：最冷門',
@@ -216,7 +223,9 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     quick_select: '快速選擇',
     remove_x_numbers: '移除 {count} 個號碼',
     remove_x_numbers_suggestion: '您已選擇了 {extra} 個額外號碼。考慮移除 {count} 個號碼。',
-    extra_numbers: '（多{count}個）'
+    extra_numbers: '（多{count}個）',
+    ai_prompt_button: 'AI 提示',
+    qimen_ai_button: '奇門 AI'
   }
 };
 
