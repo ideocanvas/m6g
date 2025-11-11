@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import MarkSixGenerator from '@/components/MarkSixGenerator';
+import BuyMeACoffee from '@/components/BuyMeACoffee';
 import { LanguageCode } from '@/lib/i18n';
 
 interface ClientHomeProps {
@@ -29,6 +30,7 @@ export default function ClientHome({ language }: ClientHomeProps) {
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
       <MarkSixGenerator language={language} />
+      <BuyMeACoffee language={language} />
     </div>
   );
 }
