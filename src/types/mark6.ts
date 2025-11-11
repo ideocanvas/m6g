@@ -48,7 +48,7 @@ export interface GenerationParams {
   selectedNumbers: number[];
   luckyNumber: number;
   isDouble: boolean;
-  generationMethod: 'ensemble' | 'bayesian' | 'ai' | 'qimen';
+  generationMethod: 'ensemble' | 'bayesian';
 }
 
 export interface ApiResponse<T> {
