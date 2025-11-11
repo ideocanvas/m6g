@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import NumberSelection from './NumberSelection';
 import ResultsPanel from './ResultsPanel';
-import Disclaimer from './Disclaimer';
 import { Combination, DrawResult, SavedGeneration } from '@/types/mark6';
 import { labels, LanguageCode } from '@/lib/i18n';
 
@@ -315,12 +314,6 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
           onDeleteGeneration={deleteGeneration}
         />
 
-        {/* Results Area Disclaimer */}
-        {combinations.length > 0 && (
-          <div className="mt-6">
-            <Disclaimer language={language} variant="compact" />
-          </div>
-        )}
       </div>
     </div>
   );
