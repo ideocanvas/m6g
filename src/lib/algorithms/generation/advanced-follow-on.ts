@@ -11,7 +11,7 @@
 // Debug flag to control logging
 const DEBUG = process.env.DEBUG === 'true' || false;
 
-import { DrawRecord, FollowOnResult, FollowOnCombinationResult } from '../types';
+import { DrawRecord, FollowOnCombinationResult } from '../types';
 
 interface AdvancedFollowOnConfig {
   maxChainLength: number;
@@ -252,10 +252,13 @@ function clusterPatterns(
   for (const draw of historicalDraws) {
     if (!draw.drawDate) continue;
 
+    // Handle both Date objects and string dates
+    const drawDate = typeof draw.drawDate === 'string' ? new Date(draw.drawDate) : draw.drawDate;
+
     const conditions = {
-      drawDay: draw.drawDate.getDay(),
-      month: draw.drawDate.getMonth(),
-      season: Math.floor(draw.drawDate.getMonth() / 3) + 1
+      drawDay: drawDate.getDay(),
+      month: drawDate.getMonth(),
+      season: Math.floor(drawDate.getMonth() / 3) + 1
     };
 
     const numbers = [...draw.winningNumbers, draw.specialNumber];

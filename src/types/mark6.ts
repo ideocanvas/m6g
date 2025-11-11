@@ -48,7 +48,7 @@ export interface GenerationParams {
   selectedNumbers: number[];
   luckyNumber: number;
   isDouble: boolean;
-  generationMethod: 'ensemble' | 'bayesian';
+  generationMethod: 'follow_on' | 'bayesian' | 'ensemble';
 }
 
 export interface ApiResponse<T> {
@@ -63,13 +63,13 @@ export interface NumberSelectionProps {
   luckyNumber: number | null;
   combinationCount: number;
   isDouble: boolean;
-  generationMethod: 'ensemble' | 'bayesian';
+  generationMethod: 'follow_on' | 'bayesian' | 'ensemble';
   language: 'en' | 'zh-TW';
   onNumberToggle: (number: number) => void;
   onLuckyNumberChange: (number: number | null) => void;
   onCombinationCountChange: (count: number) => void;
   onIsDoubleChange: (isDouble: boolean) => void;
-  onGenerationMethodChange: (method: 'ensemble' | 'bayesian') => void;
+  onGenerationMethodChange: (method: 'follow_on' | 'bayesian' | 'ensemble') => void;
   onClearSelection: () => void;
   onSelectAll: () => void;
   onSuggestNumbers: (type: 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced', count: number) => void;
@@ -85,7 +85,7 @@ export interface SavedGeneration {
   luckyNumber: number;
   combinationCount: number;
   isDouble: boolean;
-  generationMethod: 'ensemble' | 'bayesian';
+  generationMethod: 'follow_on' | 'bayesian' | 'ensemble';
   createdAt: string;
 }
 

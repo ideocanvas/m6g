@@ -64,22 +64,22 @@ export default function NumberSelection({
   }, [maxCount, suggestionCount]);
 
   const combinationOptions = [
-    { id: '4-1', value: 4, label: '4 x 1', double: false },
-    { id: '4-2', value: 4, label: '4 x 2', double: true },
-    { id: '8-1', value: 8, label: '8 x 1', double: false },
-    { id: '8-2', value: 8, label: '8 x 2', double: true },
-    { id: '12-1', value: 12, label: '12 x 1', double: false },
-    { id: '12-2', value: 12, label: '12 x 2', double: true },
-    { id: '16-1', value: 16, label: '16 x 1', double: false },
-    { id: '16-2', value: 16, label: '16 x 2', double: true },
-    { id: '20-1', value: 20, label: '20 x 1', double: false },
-    { id: '20-2', value: 20, label: '20 x 2', double: true },
-    { id: '24-1', value: 24, label: '24 x 1', double: false },
-    { id: '24-2', value: 24, label: '24 x 2', double: true },
-    { id: '28-1', value: 28, label: '28 x 1', double: false },
-    { id: '28-2', value: 28, label: '28 x 2', double: true },
-    { id: '32-1', value: 32, label: '32 x 1', double: false },
-    { id: '32-2', value: 32, label: '32 x 2', double: true },
+    { id: '4-1', value: 4, label: '4x1', double: false },
+    { id: '4-2', value: 4, label: '4x2', double: true },
+    { id: '8-1', value: 8, label: '8x1', double: false },
+    { id: '8-2', value: 8, label: '8x2', double: true },
+    { id: '12-1', value: 12, label: '12x1', double: false },
+    { id: '12-2', value: 12, label: '12x2', double: true },
+    { id: '16-1', value: 16, label: '16x1', double: false },
+    { id: '16-2', value: 16, label: '16x2', double: true },
+    { id: '20-1', value: 20, label: '20x1', double: false },
+    { id: '20-2', value: 20, label: '20x2', double: true },
+    { id: '24-1', value: 24, label: '24x1', double: false },
+    { id: '24-2', value: 24, label: '24x2', double: true },
+    { id: '28-1', value: 28, label: '28x1', double: false },
+    { id: '28-2', value: 28, label: '28x2', double: true },
+    { id: '32-1', value: 32, label: '32x1', double: false },
+    { id: '32-2', value: 32, label: '32x2', double: true },
   ];
 
   const suggestionOptions = [
@@ -197,14 +197,14 @@ export default function NumberSelection({
         </label>
         <div className="flex bg-gray-100 rounded-lg p-1">
           <button
-            onClick={() => onGenerationMethodChange('ensemble')}
+            onClick={() => onGenerationMethodChange('follow_on')}
             className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-              generationMethod === 'ensemble'
+              generationMethod === 'follow_on'
                 ? 'bg-white shadow-sm text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            {labels[language].ensemble_logic}
+            {labels[language].follow_on_logic || 'Follow-on'}
           </button>
           <button
             onClick={() => onGenerationMethodChange('bayesian')}
@@ -215,6 +215,16 @@ export default function NumberSelection({
             }`}
           >
             {labels[language].bayesian_logic}
+          </button>
+          <button
+            onClick={() => onGenerationMethodChange('ensemble')}
+            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+              generationMethod === 'ensemble'
+                ? 'bg-white shadow-sm text-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            {labels[language].ensemble_logic}
           </button>
         </div>
       </div>

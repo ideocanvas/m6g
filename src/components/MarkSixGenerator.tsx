@@ -17,7 +17,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   const [combinations, setCombinations] = useState<Combination[]>([]);
   const [currentGenerationId, setCurrentGenerationId] = useState<string>('');
   const [drawResults, setDrawResults] = useState<DrawResult | null>(null);
-  const [generationMethod, setGenerationMethod] = useState<'ensemble' | 'bayesian'>('bayesian');
+  const [generationMethod, setGenerationMethod] = useState<'follow_on' | 'bayesian' | 'ensemble'>('follow_on');
   const [combinationCount, setCombinationCount] = useState<number>(4);
   const [isDouble, setIsDouble] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -69,7 +69,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
               luckyNumber: 0,
               combinationCount: 4,
               isDouble: false,
-              generationMethod: 'bayesian' as 'ensemble' | 'bayesian',
+              generationMethod: 'follow_on' as 'follow_on' | 'bayesian' | 'ensemble',
               createdAt: new Date().toISOString(),
             }));
             setSavedGenerations(generationsArray);

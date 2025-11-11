@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
-  generateClassicCombinations,
-  generateFollowOnCombinations,
   generateEnsembleCombinations,
   generateBayesianCombinations,
   generateClassicCombinationsOptimized,
+  generateAdvancedFollowOnCombinations,
 } from "@/lib/algorithms";
 
 interface GenerateCombinationRequest {
@@ -17,10 +16,9 @@ interface GenerateCombinationRequest {
   isDouble?: boolean;
   generationMethod?:
     | "classic"
-    | "follow-on"
+    | "follow_on"
     | "ensemble"
-    | "bayesian"
-    | "classic-optimized";
+    | "bayesian";
 }
 
 /**
@@ -117,8 +115,8 @@ export async function POST(request: NextRequest) {
 
     switch (generationMethod) {
       case "classic":
-        console.log(`Generating classic combinations for ${currentDate}`);
-        const classicResults = generateClassicCombinations(
+        console.log(`Generating classic-optimized combinations for ${currentDate}`);
+        const classicResults = generateClassicCombinationsOptimized(
           combinationCount,
           selectedNumbers,
           luckyNumber,
@@ -127,20 +125,16 @@ export async function POST(request: NextRequest) {
         );
         combinations = classicResults.map((result) => result.combination);
         break;
-      case "follow-on":
-        console.log(`Generating follow-on combinations for ${currentDate}`);
-        if (!lastDrawList || lastDrawList.length === 0) {
-          throw new Error("Could not fetch the last Mark Six result.");
-        }
-        const followOnResults = generateFollowOnCombinations(
+      case "follow_on":
+        console.log(`Generating advanced follow-on combinations for ${currentDate}`);
+        const advancedFollowOnResults = generateAdvancedFollowOnCombinations(
           combinationCount,
           selectedNumbers,
           luckyNumber,
           isDouble,
-          pastResults,
-          lastDrawNumbers!
+          pastResults
         );
-        combinations = followOnResults.map((result) => result.combination);
+        combinations = advancedFollowOnResults.map((result) => result.combination);
         break;
       case "ensemble":
         console.log(`Generating ensemble combinations for ${currentDate}`);
@@ -169,22 +163,11 @@ export async function POST(request: NextRequest) {
         );
         combinations = bayesianResults.map((result) => result.combination);
         break;
-      case "classic-optimized":
-        console.log(`Generating classic-optimized combinations for ${currentDate}`);
-        const optimizedResults = generateClassicCombinationsOptimized(
-          combinationCount,
-          selectedNumbers,
-          luckyNumber,
-          isDouble,
-          pastResults
-        );
-        combinations = optimizedResults.map((result) => result.combination);
-        break;
       default:
         return NextResponse.json(
           {
             error:
-              "Invalid generation method. Use: classic, follow-on, ensemble, bayesian, or classic-optimized",
+              "Invalid generation method. Use: classic, follow_on, ensemble, or bayesian",
           },
           { status: 400 }
         );

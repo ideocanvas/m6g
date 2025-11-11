@@ -26,6 +26,7 @@ export interface LanguageLabels {
   share_link_copied: string;
   copy_failed: string;
   generation_method: string;
+  follow_on_logic: string;
   ensemble_logic: string;
   bayesian_logic: string;
   suggest_hot_follow_on: string;
@@ -114,6 +115,7 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     share_link_copied: 'Share link copied to clipboard!',
     copy_failed: 'Copy failed!',
     generation_method: 'Generation Method:',
+    follow_on_logic: 'Follow-on Logic',
     ensemble_logic: 'Ensemble Logic',
     bayesian_logic: 'Bayesian Logic',
     suggest_hot_follow_on: 'Suggest: Hot Follow-on',
@@ -198,6 +200,7 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     share_link_copied: '分享連結已複製！',
     copy_failed: '複製失敗！',
     generation_method: '生成方式：',
+    follow_on_logic: '跟隨邏輯',
     ensemble_logic: '集成邏輯',
     bayesian_logic: '貝葉斯邏輯',
     suggest_hot_follow_on: '建議：熱門跟隨',

@@ -278,7 +278,7 @@ export default function ResultsPanel({
                 navigator.clipboard.writeText(shareUrl);
                 alert(labels[language].share_link_copied_to_clipboard);
               }}
-              className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors font-medium"
+              className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors font-medium text-nowrap"
             >
               {labels[language].share}
             </button>
