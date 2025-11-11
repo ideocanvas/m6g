@@ -357,9 +357,15 @@ const PRIZE_CATEGORIES: PrizeCategory[] = [
 
 /**
  * Calculate prize for a combination against actual draw
+ * For double combinations with split numbers, treats as two partial bets
  */
-function calculatePrize(combination: number[], actualDraw: DrawRecord): { prizeCategory: string; prizeAmount: number } {
-  // Count matched winning numbers
+function calculatePrize(combination: number[], actualDraw: DrawRecord, splitNumbers?: number[]): { prizeCategory: string; prizeAmount: number } {
+  // For double combinations with split numbers, calculate as two partial bets
+  if (splitNumbers && splitNumbers.length === 2 && combination.length === 7) {
+    return calculatePartialBetPrize(combination, splitNumbers, actualDraw);
+  }
+
+  // Standard prize calculation for single combinations
   let matchedWinning = 0;
   for (const num of combination) {
     if (actualDraw.winningNumbers.includes(num)) {
@@ -367,10 +373,8 @@ function calculatePrize(combination: number[], actualDraw: DrawRecord): { prizeC
     }
   }
 
-  // Check if special number is matched
   const matchedSpecial = combination.includes(actualDraw.specialNumber);
 
-  // Find matching prize category
   for (const category of PRIZE_CATEGORIES) {
     if (category.matchCondition(matchedWinning, matchedSpecial)) {
       return {
@@ -380,14 +384,62 @@ function calculatePrize(combination: number[], actualDraw: DrawRecord): { prizeC
     }
   }
 
-  // No prize
+  return { prizeCategory: 'No Prize', prizeAmount: 0 };
+}
+
+/**
+ * Calculate prize for double combinations treated as two partial bets
+ * Each partial bet gets half the prize amount
+ */
+function calculatePartialBetPrize(combination: number[], splitNumbers: number[], actualDraw: DrawRecord): { prizeCategory: string; prizeAmount: number } {
+  // Get the 5 common numbers (all numbers except the two split numbers)
+  const commonNumbers = combination.filter(num => !splitNumbers.includes(num));
+  
+  if (commonNumbers.length !== 5) {
+    throw new Error(`Invalid partial bet: expected 5 common numbers, got ${commonNumbers.length}`);
+  }
+
+  let totalPrize = 0;
+  const prizeCategories: string[] = [];
+
+  // Calculate prize for each partial bet
+  for (const splitNumber of splitNumbers) {
+    const partialCombination = [...commonNumbers, splitNumber];
+    
+    let matchedWinning = 0;
+    for (const num of partialCombination) {
+      if (actualDraw.winningNumbers.includes(num)) {
+        matchedWinning++;
+      }
+    }
+
+    const matchedSpecial = partialCombination.includes(actualDraw.specialNumber);
+
+    for (const category of PRIZE_CATEGORIES) {
+      if (category.matchCondition(matchedWinning, matchedSpecial)) {
+        // Partial bets get half the prize amount
+        totalPrize += category.prizeAmount / 2;
+        prizeCategories.push(`${category.name} (Partial)`);
+        break;
+      }
+    }
+  }
+
+  if (totalPrize > 0) {
+    return {
+      prizeCategory: prizeCategories.join(' + '),
+      prizeAmount: totalPrize
+    };
+  }
+
   return { prizeCategory: 'No Prize', prizeAmount: 0 };
 }
 
 /**
  * Calculate prize results for all combinations
+ * Updated to handle algorithm results with split numbers
  */
-function calculatePrizeResults(combinations: number[][], actualDraw: DrawRecord): PrizeResult {
+function calculatePrizeResults(combinations: (number[] | { combination: number[]; splitNumbers?: number[] })[], actualDraw: DrawRecord): PrizeResult {
   const result: PrizeResult = {
     firstPrize: 0,
     secondPrize: 0,
@@ -400,35 +452,47 @@ function calculatePrizeResults(combinations: number[][], actualDraw: DrawRecord)
     totalCombinations: combinations.length
   };
 
-  for (const combination of combinations) {
-    const { prizeCategory, prizeAmount } = calculatePrize(combination, actualDraw);
+  for (const item of combinations) {
+    // Handle both array format and object format with splitNumbers
+    const combination = Array.isArray(item) ? item : item.combination;
+    const splitNumbers = Array.isArray(item) ? undefined : item.splitNumbers;
 
+    const { prizeCategory, prizeAmount } = calculatePrize(combination, actualDraw, splitNumbers);
+
+    // Count prizes (for partial bets, count as one combination but with half prizes)
     switch (prizeCategory) {
       case 'First Prize':
+      case 'First Prize (Partial)':
         result.firstPrize++;
         result.totalPrize += prizeAmount;
         break;
       case 'Second Prize':
+      case 'Second Prize (Partial)':
         result.secondPrize++;
         result.totalPrize += prizeAmount;
         break;
       case 'Third Prize':
+      case 'Third Prize (Partial)':
         result.thirdPrize++;
         result.totalPrize += prizeAmount;
         break;
       case 'Fourth Prize':
+      case 'Fourth Prize (Partial)':
         result.fourthPrize++;
         result.totalPrize += prizeAmount;
         break;
       case 'Fifth Prize':
+      case 'Fifth Prize (Partial)':
         result.fifthPrize++;
         result.totalPrize += prizeAmount;
         break;
       case 'Sixth Prize':
+      case 'Sixth Prize (Partial)':
         result.sixthPrize++;
         result.totalPrize += prizeAmount;
         break;
       case 'Seventh Prize':
+      case 'Seventh Prize (Partial)':
         result.seventhPrize++;
         result.totalPrize += prizeAmount;
         break;
@@ -547,7 +611,7 @@ async function runTest(config: TestConfig): Promise<void> {
         );
 
         // Generate combinations using generation algorithm
-        const generatedCombinations = generateCombinations(
+        const generatedResults = generateCombinations(
           combinationType,
           selectedNumbers,
           historicalDataUpToDraw,
@@ -557,8 +621,8 @@ async function runTest(config: TestConfig): Promise<void> {
           preCalculatedAdvancedFollowOnAnalysis
         );
 
-        // Calculate prize results for all combinations
-        const prizeResults = calculatePrizeResults(generatedCombinations, testDraw);
+        // Calculate prize results for all combinations (now handles split numbers)
+        const prizeResults = calculatePrizeResults(generatedResults, testDraw);
 
         const result: TestResult = {
           drawDate,
@@ -566,7 +630,7 @@ async function runTest(config: TestConfig): Promise<void> {
           suggestionAlgorithm: suggestionAlgorithm.name,
           generationAlgorithm: generationAlgorithm.name,
           selectedNumbers,
-          generatedCombinations,
+          generatedCombinations: generatedResults.map((r: number[] | { combination: number[]; splitNumbers?: number[] }) => Array.isArray(r) ? r : r.combination),
           actualDraw: testDraw,
           prizeResults
         };

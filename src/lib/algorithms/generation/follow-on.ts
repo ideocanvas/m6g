@@ -1,5 +1,10 @@
 import { DrawRecord, FollowOnCombinationResult } from '../types';
 
+interface NumberProbability {
+  number: number;
+  probability: number;
+}
+
 /**
  * Follow-on generation algorithm based on statistical relationships between consecutive draws
  * Pure function that only depends on input parameters (IoC pattern)
@@ -97,11 +102,24 @@ export function generateFollowOnCombinations(
     }
   }
 
-  return generatedCombinations.map((combination, index) => ({
-    combination,
-    sequenceNumber: index + 1,
-    weights: weightedPool
-  }));
+  // For double combinations, calculate split numbers based on least winning probability
+  const results = generatedCombinations.map((combination, index) => {
+    let splitNumbers: number[] = [];
+    
+    if (isDouble && combination.length === 7) {
+      // Calculate which two numbers have the least chance to win
+      splitNumbers = calculateSplitNumbers(combination, historicalDraws);
+    }
+
+    return {
+      combination,
+      sequenceNumber: index + 1,
+      weights: weightedPool,
+      splitNumbers: splitNumbers.length > 0 ? splitNumbers : undefined
+    };
+  });
+
+  return results;
 }
 
 /**
@@ -130,4 +148,42 @@ function analyzeFollowOnPatterns(historicalDraws: DrawRecord[]): Map<number, Map
   }
 
   return followOnMap;
+}
+
+/**
+ * Calculate which two numbers in a 7-number combination should be split for partial bets
+ * Selects numbers with the least probability of winning based on historical data
+ */
+function calculateSplitNumbers(combination: number[], historicalDraws: DrawRecord[]): number[] {
+  // Calculate winning probability for each number in the combination
+  const probabilities: NumberProbability[] = combination.map(number => ({
+    number,
+    probability: calculateWinningProbability(number, historicalDraws)
+  }));
+
+  // Sort by probability ascending (least likely to win first)
+  probabilities.sort((a, b) => a.probability - b.probability);
+
+  // Return the two numbers with the lowest winning probability
+  return probabilities.slice(0, 2).map(p => p.number);
+}
+
+/**
+ * Calculate winning probability for a single number based on historical data
+ */
+function calculateWinningProbability(number: number, historicalDraws: DrawRecord[]): number {
+  if (historicalDraws.length === 0) return 0;
+
+  let appearances = 0;
+  let totalDraws = 0;
+
+  for (const draw of historicalDraws) {
+    // Count if number appears in winning numbers or special number
+    if (draw.winningNumbers.includes(number) || draw.specialNumber === number) {
+      appearances++;
+    }
+    totalDraws++;
+  }
+
+  return appearances / totalDraws;
 }

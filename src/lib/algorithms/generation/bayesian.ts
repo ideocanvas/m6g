@@ -1,4 +1,9 @@
-import { DrawRecord } from '../types';
+import { DrawRecord, BayesianResult } from '../types';
+
+interface NumberProbability {
+  number: number;
+  probability: number;
+}
 
 /**
  * Bayesian Probability model for Mark Six number generation
@@ -12,7 +17,7 @@ export function generateBayesianCombinations(
   isDouble: boolean,
   historicalDraws: DrawRecord[],
   lastDrawNumbers?: number[]
-): { combination: number[]; probability: number }[] {
+): BayesianResult[] {
   if (!historicalDraws || historicalDraws.length === 0) {
     throw new Error('No historical data provided');
   }
@@ -20,7 +25,7 @@ export function generateBayesianCombinations(
   // Calculate Bayesian probabilities for all numbers
   const probabilities = calculateBayesianProbabilities(historicalDraws, lastDrawNumbers);
 
-  const combinations: { combination: number[]; probability: number }[] = [];
+  const combinations: BayesianResult[] = [];
   const combinationLength = isDouble ? 7 : 6;
 
   for (let i = 0; i < combinationCount; i++) {
@@ -71,9 +76,18 @@ export function generateBayesianCombinations(
     finalCombination.sort((a, b) => a - b);
 
     if (finalCombination.length === combinationLength) {
+      let splitNumbers: number[] = [];
+      
+      if (isDouble && finalCombination.length === 7) {
+        // Calculate which two numbers have the least chance to win
+        splitNumbers = calculateSplitNumbers(finalCombination, historicalDraws);
+      }
+
       combinations.push({
         combination: finalCombination,
-        probability: combinationProbability
+        sequenceNumber: i + 1,
+        probability: combinationProbability,
+        splitNumbers: splitNumbers.length > 0 ? splitNumbers : undefined
       });
     }
   }
@@ -355,4 +369,42 @@ export function getBayesianProbabilities(
   return Array.from(probabilities.entries())
     .map(([number, probability]) => ({ number, probability }))
     .sort((a, b) => b.probability - a.probability);
+}
+
+/**
+ * Calculate which two numbers in a 7-number combination should be split for partial bets
+ * Selects numbers with the least probability of winning based on historical data
+ */
+function calculateSplitNumbers(combination: number[], historicalDraws: DrawRecord[]): number[] {
+  // Calculate winning probability for each number in the combination
+  const probabilities: NumberProbability[] = combination.map(number => ({
+    number,
+    probability: calculateWinningProbability(number, historicalDraws)
+  }));
+
+  // Sort by probability ascending (least likely to win first)
+  probabilities.sort((a, b) => a.probability - b.probability);
+
+  // Return the two numbers with the lowest winning probability
+  return probabilities.slice(0, 2).map(p => p.number);
+}
+
+/**
+ * Calculate winning probability for a single number based on historical data
+ */
+function calculateWinningProbability(number: number, historicalDraws: DrawRecord[]): number {
+  if (historicalDraws.length === 0) return 0;
+
+  let appearances = 0;
+  let totalDraws = 0;
+
+  for (const draw of historicalDraws) {
+    // Count if number appears in winning numbers or special number
+    if (draw.winningNumbers.includes(number) || draw.specialNumber === number) {
+      appearances++;
+    }
+    totalDraws++;
+  }
+
+  return appearances / totalDraws;
 }

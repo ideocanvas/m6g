@@ -32,12 +32,14 @@ export interface ClassicResult {
   score?: number;
   scoreDistribution?: Record<number, number>;
   numberDistribution?: Array<{ number: number; frequency: number }>;
+  splitNumbers?: number[]; // For double combinations: which 2 numbers to split
 }
 
 export interface FollowOnCombinationResult {
   combination: number[];
   sequenceNumber: number;
   weights?: Map<number, number>;
+  splitNumbers?: number[]; // For double combinations: which 2 numbers to split
 }
 
 export interface EnsembleResult {
@@ -50,10 +52,12 @@ export interface EnsembleResult {
     bayesian: number;
   };
   confidence: number;
+  splitNumbers?: number[]; // For double combinations: which 2 numbers to split
 }
 
 export interface BayesianResult {
   combination: number[];
   sequenceNumber: number;
   probability: number;
+  splitNumbers?: number[]; // For double combinations: which 2 numbers to split
 }
