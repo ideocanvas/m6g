@@ -135,8 +135,16 @@ export async function GET(request: NextRequest) {
 
     console.log(`Found ${data.length} records`);
 
+    // Convert BigInt values to strings for JSON serialization
+    const serializableData = data.map(result => ({
+      ...result,
+      totalInvestment: result.totalInvestment?.toString() || null,
+      jackpot: result.jackpot?.toString() || null,
+      estimatedPrize: result.estimatedPrize?.toString() || null
+    }));
+
     return NextResponse.json({
-      data,
+      data: serializableData,
       count: data.length,
       query: {
         limit,
@@ -169,16 +177,17 @@ export async function POST(request: NextRequest) {
     const { startDate, endDate, days = 30 } = body;
 
     // Calculate date range if not provided
-    const end = endDate || new Date().toISOString().split('T')[0];
-    const start = startDate || new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const end = endDate || null;
+    const start = startDate || null;
+    const lastNDraw = (!startDate && !endDate) ? 10 : null;
 
-    console.log(`Fetching HKJC draw results from ${start} to ${end}`);
+    console.log(`Fetching HKJC draw results - startDate: ${start}, endDate: ${end}, lastNDraw: ${lastNDraw}`);
 
     // Fetch data from HKJC GraphQL API
     const requestData = {
       operationName: "marksixResult",
       variables: {
-        lastNDraw: null,
+        lastNDraw: lastNDraw,
         startDate: start,
         endDate: end,
         drawType: "All"
@@ -205,6 +214,7 @@ export async function POST(request: NextRequest) {
 
     // Process and save the draw results
     const savedResults = [];
+    const existingDraws = [];
     for (const draw of draws) {
       if (!draw.drawResult?.drawnNo || !draw.drawResult?.xDrawnNo) {
         console.warn(`Skipping draw ${draw.id}: missing draw result data`);
@@ -218,16 +228,36 @@ export async function POST(request: NextRequest) {
 
       if (existingDraw) {
         console.log(`Draw ${draw.id} already exists, skipping`);
+        existingDraws.push(existingDraw);
         continue;
       }
 
-      // Format date for storage
-      const drawDate = new Date(draw.drawDate);
+      // Format date for storage - handle HKJC date format with timezone offset
+      let drawDate: Date;
+      
+      // Pattern match for HKJC date format: YYYY-MM-DD+HH:MM
+      const hkjcDatePattern = /^(\d{4}-\d{2}-\d{2})\+(\d{2}:\d{2})$/;
+      const match = draw.drawDate.match(hkjcDatePattern);
+      
+      if (match) {
+        // Valid HKJC date format: convert to proper ISO format
+        const [, datePart, timezonePart] = match;
+        drawDate = new Date(datePart + 'T00:00:00' + '+' + timezonePart);
+      } else {
+        // Try parsing as standard date format
+        drawDate = new Date(draw.drawDate);
+      }
+      
+      if (isNaN(drawDate.getTime())) {
+        console.warn(`Skipping draw ${draw.id}: invalid draw date "${draw.drawDate}"`);
+        continue;
+      }
+      
       const dateText = `${drawDate.getDate().toString().padStart(2, '0')}/${(drawDate.getMonth() + 1).toString().padStart(2, '0')}/${drawDate.getFullYear()}`;
 
       const drawData = {
         drawId: draw.id,
-        drawDate: new Date(draw.drawDate),
+        drawDate: drawDate,
         dateText: dateText,
         winningNumbers: draw.drawResult.drawnNo,
         specialNumber: draw.drawResult.xDrawnNo,
@@ -254,10 +284,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Convert BigInt values to strings for JSON serialization
+    const serializableResults = savedResults.map(result => ({
+      ...result,
+      totalInvestment: result.totalInvestment?.toString() || null,
+      jackpot: result.jackpot?.toString() || null,
+      estimatedPrize: result.estimatedPrize?.toString() || null
+    }));
+
+    const serializableExistingDraws = existingDraws.map(draw => ({
+      ...draw,
+      totalInvestment: draw.totalInvestment?.toString() || null,
+      jackpot: draw.jackpot?.toString() || null,
+      estimatedPrize: draw.estimatedPrize?.toString() || null
+    }));
+
     return NextResponse.json({
       message: `Successfully processed ${draws.length} draws`,
+      totalFetched: draws.length,
       saved: savedResults.length,
-      results: savedResults
+      existing: existingDraws.length,
+      savedResults: serializableResults,
+      existingDraws: serializableExistingDraws
     });
 
   } catch (error) {
