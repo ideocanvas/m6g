@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { unstable_cache } from 'next/cache';
-import { prisma } from '@/lib/prisma';
 import {
-  getFollowOnNumbers,
-  getAdvancedFollowOnNumbers,
-  getHistoricalFrequency,
+  generateBalancedNumbers,
   generateRandomNumbers,
-  generateBalancedNumbers
+  getAdvancedFollowOnNumbers,
+  getHistoricalFrequency
 } from '@/lib/algorithms';
+import { prisma } from '@/lib/prisma';
+import { unstable_cache } from 'next/cache';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Get historical draws within the specified time period with caching
@@ -50,10 +49,6 @@ const generateCachedAnalysisResult = unstable_cache(
 
     switch (analysisType) {
       case 'follow_on':
-      //   const historicalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
-      //   result = getFollowOnNumbers(historicalDraws);
-      //   break;
-      // case 'advanced_follow_on':
         const advancedHistoricalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
         result = getAdvancedFollowOnNumbers(advancedHistoricalDraws);
         break;
