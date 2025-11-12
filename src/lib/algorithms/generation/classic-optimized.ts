@@ -9,6 +9,9 @@
  * - Parallel processing simulation
  */
 
+// Debug flag to control logging
+const DEBUG = process.env.DEBUG === 'true' || false;
+
 import { DrawRecord, ClassicResult } from '../types';
 
 interface NumberProbability {
@@ -103,7 +106,7 @@ export function generateClassicCombinationsOptimized(
 
     // Performance optimization: Early termination for very good candidates
     if (result.totalScore >= earlyTerminationThreshold && i >= 50) {
-      console.log(`Early termination at iteration ${i} with score ${result.totalScore}`);
+      if (DEBUG) console.log(`Early termination at iteration ${i} with score ${result.totalScore}`);
       break;
     }
   }
@@ -137,7 +140,7 @@ export function generateClassicCombinationsOptimized(
   // For double combinations, calculate split numbers based on least winning probability
   const results = finalCombinations.map((combination, index) => {
     let splitNumbers: number[] = [];
-    
+
     if (isDouble && combination.length === 7) {
       // Calculate which two numbers have the least chance to win
       splitNumbers = calculateSplitNumbers(combination, historicalDraws);
