@@ -50,10 +50,10 @@ const generateCachedAnalysisResult = unstable_cache(
 
     switch (analysisType) {
       case 'follow_on':
-        const historicalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
-        result = getFollowOnNumbers(historicalDraws);
-        break;
-      case 'advanced_follow_on':
+      //   const historicalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
+      //   result = getFollowOnNumbers(historicalDraws);
+      //   break;
+      // case 'advanced_follow_on':
         const advancedHistoricalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
         result = getAdvancedFollowOnNumbers(advancedHistoricalDraws);
         break;
