@@ -282,15 +282,14 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto p-4 gap-6 min-h-screen">
-      {/* Ad Unit - Horizontal Banner */}
-      <div className="w-full">
-        {/* <!-- 2025111201 --> */}
+      {/* Ad Unit - Horizontal Banner 2025111201 */}
+      {/* <div className="w-full">
         <AdUnit
           adSlot="2527138758"
           adFormat="horizontal"
           style={{ margin: '0 auto' }}
         />
-      </div>
+      </div> */}
 
       <div className="flex flex-col md:flex-row w-full gap-6">
         {/* Left Panel: Generator Controls */}
