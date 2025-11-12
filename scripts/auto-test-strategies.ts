@@ -11,20 +11,19 @@
  */
 
 import {
-  getHistoricalFrequency,
-  getFollowOnNumbers,
-  getAdvancedFollowOnNumbers,
-  generateRandomNumbers,
+  generateAdvancedFollowOnCombinations,
   generateBalancedNumbers,
+  generateBayesianCombinations,
   generateClassicCombinations,
   generateClassicCombinationsOptimized,
-  generateFollowOnCombinations,
   generateEnsembleCombinations,
-  generateBayesianCombinations,
-  generateAdvancedFollowOnCombinations
+  generateFollowOnCombinations,
+  generateRandomNumbers,
+  getAdvancedFollowOnNumbers,
+  getFollowOnNumbers,
+  getHistoricalFrequency
 } from '../src/lib/algorithms';
 import { DrawRecord } from '../src/lib/algorithms/types';
-import type { AdvancedFollowOnAnalysis } from '../src/lib/algorithms/generation/advanced-follow-on';
 
 // Load real draw data from JSON file
 async function getRealDrawData(): Promise<DrawRecord[]> {
@@ -127,6 +126,17 @@ const COMBINATION_TYPES: CombinationType[] = [
   { name: '32x2', combinationCount: 32, isDouble: true, costPerDraw: 49600 },
 ];
 
+// Mark Six Prize Categories
+const PRIZE_CATEGORIES = [
+  { name: 'First Prize', prizeAmount: 8000000 },
+  { name: 'Second Prize', prizeAmount: 200000 },
+  { name: 'Third Prize', prizeAmount: 50000 },
+  { name: 'Fourth Prize', prizeAmount: 9600 },
+  { name: 'Fifth Prize', prizeAmount: 640 },
+  { name: 'Sixth Prize', prizeAmount: 320 },
+  { name: 'Seventh Prize', prizeAmount: 40 }
+];
+
 // Suggestion algorithms to test
 const SUGGESTION_ALGORITHMS: SuggestionAlgorithm[] = [
   { name: 'Hot Follow-on', type: 'hot_follow_on' },
@@ -146,16 +156,6 @@ const GENERATION_ALGORITHMS: GenerationAlgorithm[] = [
   { name: 'Bayesian', type: 'bayesian' }
 ];
 
-// Mark Six Prize Categories
-const PRIZE_CATEGORIES = [
-  { name: 'First Prize', prizeAmount: 8000000 },
-  { name: 'Second Prize', prizeAmount: 200000 },
-  { name: 'Third Prize', prizeAmount: 50000 },
-  { name: 'Fourth Prize', prizeAmount: 9600 },
-  { name: 'Fifth Prize', prizeAmount: 640 },
-  { name: 'Sixth Prize', prizeAmount: 320 },
-  { name: 'Seventh Prize', prizeAmount: 40 }
-];
 
 /**
  * Get numbers based on suggestion algorithm
@@ -295,14 +295,38 @@ function calculatePrize(combination: number[], actualDraw: DrawRecord): { prizeC
 
   const matchedSpecial = combination.includes(actualDraw.specialNumber);
 
-  // Simplified prize calculation (for this test we'll use fixed amounts)
-  if (matchedWinning === 6) return { prizeCategory: 'First Prize', prizeAmount: 8000000 };
-  if (matchedWinning === 5 && matchedSpecial) return { prizeCategory: 'Second Prize', prizeAmount: 200000 };
-  if (matchedWinning === 5 && !matchedSpecial) return { prizeCategory: 'Third Prize', prizeAmount: 50000 };
-  if (matchedWinning === 4 && matchedSpecial) return { prizeCategory: 'Fourth Prize', prizeAmount: 9600 };
-  if (matchedWinning === 4 && !matchedSpecial) return { prizeCategory: 'Fifth Prize', prizeAmount: 640 };
-  if (matchedWinning === 3 && matchedSpecial) return { prizeCategory: 'Sixth Prize', prizeAmount: 320 };
-  if (matchedWinning === 3 && !matchedSpecial) return { prizeCategory: 'Seventh Prize', prizeAmount: 40 };
+  // Find matching prize category
+  for (const category of PRIZE_CATEGORIES) {
+    let matches = false;
+
+    switch (category.name) {
+      case 'First Prize':
+        matches = matchedWinning === 6;
+        break;
+      case 'Second Prize':
+        matches = matchedWinning === 5 && matchedSpecial;
+        break;
+      case 'Third Prize':
+        matches = matchedWinning === 5 && !matchedSpecial;
+        break;
+      case 'Fourth Prize':
+        matches = matchedWinning === 4 && matchedSpecial;
+        break;
+      case 'Fifth Prize':
+        matches = matchedWinning === 4 && !matchedSpecial;
+        break;
+      case 'Sixth Prize':
+        matches = matchedWinning === 3 && matchedSpecial;
+        break;
+      case 'Seventh Prize':
+        matches = matchedWinning === 3 && !matchedSpecial;
+        break;
+    }
+
+    if (matches) {
+      return { prizeCategory: category.name, prizeAmount: category.prizeAmount };
+    }
+  }
 
   return { prizeCategory: 'No Prize', prizeAmount: 0 };
 }
@@ -396,7 +420,7 @@ function testStrategy(
         winningDraws++;
       }
 
-    } catch (error) {
+    } catch {
       // Skip draws that cause errors (e.g., insufficient historical data)
       continue;
     }
