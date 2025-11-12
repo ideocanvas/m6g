@@ -4,7 +4,7 @@
 import Script from 'next/script';
 
 export const GoogleAdSense = () => {
-if (process.env.ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production') {
   return null;
 }
 
