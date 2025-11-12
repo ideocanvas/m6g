@@ -3,6 +3,7 @@ import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import {
   getFollowOnNumbers,
+  getAdvancedFollowOnNumbers,
   getHistoricalFrequency,
   generateRandomNumbers,
   generateBalancedNumbers
@@ -30,7 +31,7 @@ const getHistoricalDraws = unstable_cache(
       },
       orderBy: { drawDate: 'asc' }
     });
-    
+
     console.log(`[DB QUERY] Retrieved ${result.length} historical draws`);
     return result;
   },
@@ -44,13 +45,17 @@ const getHistoricalDraws = unstable_cache(
 const generateCachedAnalysisResult = unstable_cache(
   async (analysisType: string, daysOfHistory: number, currentDate: string) => {
     console.log(`[CACHE MISS] Generating cached analysis for type: ${analysisType}, days: ${daysOfHistory}, date: ${currentDate}`);
-    
+
     let result;
 
     switch (analysisType) {
       case 'follow_on':
         const historicalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
         result = getFollowOnNumbers(historicalDraws);
+        break;
+      case 'advanced_follow_on':
+        const advancedHistoricalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
+        result = getAdvancedFollowOnNumbers(advancedHistoricalDraws);
         break;
       case 'hot':
         const hotHistoricalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
@@ -76,7 +81,7 @@ const generateCachedAnalysisResult = unstable_cache(
  */
 async function generateNonCachedAnalysisResult(analysisType: string) {
   console.log(`[NON-CACHED] Generating ${analysisType} analysis`);
-  
+
   let result;
 
   switch (analysisType) {
@@ -97,7 +102,7 @@ async function generateNonCachedAnalysisResult(analysisType: string) {
 /**
  * GET /api/analysis - Get number frequency and pattern analysis
  * Query parameters:
- * - type: 'hot', 'cold', 'follow_on', 'random', 'balanced'
+ * - type: 'hot', 'cold', 'follow_on', 'advanced_follow_on', 'random', 'balanced'
  * - daysOfHistory: days of history to analyze (default: 1095)
  * - testData: JSON array of historical draw records for testing (optional)
  */
@@ -106,7 +111,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const analysisType = searchParams.get('type') || 'hot';
     const daysOfHistory = parseInt(searchParams.get('daysOfHistory') || '1095');
-    
+
     // Use current date as parameter for cache key
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
@@ -114,15 +119,15 @@ export async function GET(request: NextRequest) {
 
     let result;
 
-    // Only cache data-dependent analysis types (follow_on, hot, cold)
-    if (['follow_on', 'hot', 'cold'].includes(analysisType)) {
+    // Only cache data-dependent analysis types (follow_on, advanced_follow_on, hot, cold)
+    if (['follow_on', 'advanced_follow_on', 'hot', 'cold'].includes(analysisType)) {
       result = await generateCachedAnalysisResult(analysisType, daysOfHistory, currentDate);
     } else if (['random', 'balanced'].includes(analysisType)) {
       // Don't cache random and balanced types as they generate different results each time
       result = await generateNonCachedAnalysisResult(analysisType);
     } else {
       return NextResponse.json(
-        { error: 'Invalid analysis type. Use: follow_on, hot, cold, random, or balanced' },
+        { error: 'Invalid analysis type. Use: follow_on, advanced_follow_on, hot, cold, random, or balanced' },
         { status: 400 }
       );
     }
