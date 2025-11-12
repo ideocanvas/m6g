@@ -195,120 +195,165 @@ export async function POST(request: NextRequest) {
       query: HKJC_GRAPHQL_QUERY
     };
 
-    const response = await fetch('https://info.cld.hkjc.com/graphql/base/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HKJC API responded with status: ${response.status}`);
+    // Validate required environment variables
+    const apiEndpoint = process.env.HKJC_API_ENDPOINT;
+    if (!apiEndpoint) {
+      throw new Error('HKJC_API_ENDPOINT environment variable is not defined');
     }
 
-    const result = await response.json() as HKJCGraphQLResponse;
-    const draws: HKJCDrawResult[] = result.data?.lotteryDraws || [];
+    // Validate endpoint URL format
+    try {
+      new URL(apiEndpoint);
+    } catch {
+      throw new Error('HKJC_API_ENDPOINT is not a valid URL');
+    }
 
-    console.log(`Fetched ${draws.length} draws from HKJC API`);
+    // Configure fetch with timeout and optimized settings
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    // Process and save the draw results
-    const savedResults = [];
-    const existingDraws = [];
-    for (const draw of draws) {
-      if (!draw.drawResult?.drawnNo || !draw.drawResult?.xDrawnNo) {
-        console.warn(`Skipping draw ${draw.id}: missing draw result data`);
-        continue;
-      }
-
-      // Check if draw already exists
-      const existingDraw = await prisma.markSixResult.findUnique({
-        where: { drawId: draw.id }
+    try {
+      const response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'MarkSix-Analysis-App/1.0',
+        },
+        body: JSON.stringify(requestData),
+        signal: controller.signal,
       });
 
-      if (existingDraw) {
-        console.log(`Draw ${draw.id} already exists, skipping`);
-        existingDraws.push(existingDraw);
-        continue;
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HKJC API responded with status ${response.status}: ${errorText}`);
       }
 
-      // Format date for storage - handle HKJC date format with timezone offset
-      let drawDate: Date;
-      
-      // Pattern match for HKJC date format: YYYY-MM-DD+HH:MM
-      const hkjcDatePattern = /^(\d{4}-\d{2}-\d{2})\+(\d{2}:\d{2})$/;
-      const match = draw.drawDate.match(hkjcDatePattern);
-      
-      if (match) {
-        // Valid HKJC date format: convert to proper ISO format
-        const [, datePart, timezonePart] = match;
-        drawDate = new Date(datePart + 'T00:00:00' + '+' + timezonePart);
-      } else {
-        // Try parsing as standard date format
-        drawDate = new Date(draw.drawDate);
-      }
-      
-      if (isNaN(drawDate.getTime())) {
-        console.warn(`Skipping draw ${draw.id}: invalid draw date "${draw.drawDate}"`);
-        continue;
-      }
-      
-      const dateText = `${drawDate.getDate().toString().padStart(2, '0')}/${(drawDate.getMonth() + 1).toString().padStart(2, '0')}/${drawDate.getFullYear()}`;
+      const result = await response.json() as HKJCGraphQLResponse;
 
-      const drawData = {
-        drawId: draw.id,
-        drawDate: drawDate,
-        dateText: dateText,
-        winningNumbers: draw.drawResult.drawnNo,
-        specialNumber: draw.drawResult.xDrawnNo,
-        snowballCode: draw.snowballCode,
-        snowballNameEn: draw.snowballName_en,
-        snowballNameCh: draw.snowballName_ch,
-        totalInvestment: draw.lotteryPool?.totalInvestment ? BigInt(draw.lotteryPool.totalInvestment) : null,
-        jackpot: draw.lotteryPool?.jackpot ? BigInt(draw.lotteryPool.jackpot) : null,
-        unitBet: draw.lotteryPool?.unitBet,
-        estimatedPrize: draw.lotteryPool?.estimatedPrize ? BigInt(draw.lotteryPool.estimatedPrize) : null,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+      // Validate response structure
+      if (!result.data || !Array.isArray(result.data.lotteryDraws)) {
+        throw new Error('Invalid response structure from HKJC API');
+      }
 
-      // Insert into database
-      try {
-        const data = await prisma.markSixResult.create({
-          data: drawData
+      const draws: HKJCDrawResult[] = result.data.lotteryDraws;
+
+      console.log(`Fetched ${draws.length} draws from HKJC API`);
+
+      // Process and save the draw results
+      const savedResults = [];
+      const existingDraws = [];
+      for (const draw of draws) {
+        if (!draw.drawResult?.drawnNo || !draw.drawResult?.xDrawnNo) {
+          console.warn(`Skipping draw ${draw.id}: missing draw result data`);
+          continue;
+        }
+
+        // Check if draw already exists
+        const existingDraw = await prisma.markSixResult.findUnique({
+          where: { drawId: draw.id }
         });
-        savedResults.push(data);
-        console.log(`Saved draw ${draw.id}`);
-      } catch (error) {
-        console.error(`Error saving draw ${draw.id}:`, error);
+
+        if (existingDraw) {
+          console.log(`Draw ${draw.id} already exists, skipping`);
+          existingDraws.push(existingDraw);
+          continue;
+        }
+
+        // Format date for storage - handle HKJC date format with timezone offset
+        let drawDate: Date;
+
+        // Pattern match for HKJC date format: YYYY-MM-DD+HH:MM
+        const hkjcDatePattern = /^(\d{4}-\d{2}-\d{2})\+(\d{2}:\d{2})$/;
+        const match = draw.drawDate.match(hkjcDatePattern);
+
+        if (match) {
+          // Valid HKJC date format: convert to proper ISO format
+          const [, datePart, timezonePart] = match;
+          drawDate = new Date(datePart + 'T00:00:00' + '+' + timezonePart);
+        } else {
+          // Try parsing as standard date format
+          drawDate = new Date(draw.drawDate);
+        }
+
+        if (isNaN(drawDate.getTime())) {
+          console.warn(`Skipping draw ${draw.id}: invalid draw date "${draw.drawDate}"`);
+          continue;
+        }
+
+        const dateText = `${drawDate.getDate().toString().padStart(2, '0')}/${(drawDate.getMonth() + 1).toString().padStart(2, '0')}/${drawDate.getFullYear()}`;
+
+        const drawData = {
+          drawId: draw.id,
+          drawDate: drawDate,
+          dateText: dateText,
+          winningNumbers: draw.drawResult.drawnNo,
+          specialNumber: draw.drawResult.xDrawnNo,
+          snowballCode: draw.snowballCode,
+          snowballNameEn: draw.snowballName_en,
+          snowballNameCh: draw.snowballName_ch,
+          totalInvestment: draw.lotteryPool?.totalInvestment ? BigInt(draw.lotteryPool.totalInvestment) : null,
+          jackpot: draw.lotteryPool?.jackpot ? BigInt(draw.lotteryPool.jackpot) : null,
+          unitBet: draw.lotteryPool?.unitBet,
+          estimatedPrize: draw.lotteryPool?.estimatedPrize ? BigInt(draw.lotteryPool.estimatedPrize) : null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        // Insert into database
+        try {
+          const data = await prisma.markSixResult.create({
+            data: drawData
+          });
+          savedResults.push(data);
+          console.log(`Saved draw ${draw.id}`);
+        } catch (error) {
+          console.error(`Error saving draw ${draw.id}:`, error);
+        }
       }
+
+      // Convert BigInt values to strings for JSON serialization
+      const serializableResults = savedResults.map(result => ({
+        ...result,
+        totalInvestment: result.totalInvestment?.toString() || null,
+        jackpot: result.jackpot?.toString() || null,
+        estimatedPrize: result.estimatedPrize?.toString() || null
+      }));
+
+      const serializableExistingDraws = existingDraws.map(draw => ({
+        ...draw,
+        totalInvestment: draw.totalInvestment?.toString() || null,
+        jackpot: draw.jackpot?.toString() || null,
+        estimatedPrize: draw.estimatedPrize?.toString() || null
+      }));
+
+      return NextResponse.json({
+        message: `Successfully processed ${draws.length} draws`,
+        totalFetched: draws.length,
+        saved: savedResults.length,
+        existing: existingDraws.length,
+        savedResults: serializableResults,
+        existingDraws: serializableExistingDraws
+      });
+
+    } catch (error) {
+      console.error('Error in POST /api/draws:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch draw results from HKJC API' },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    // Handle fetch timeout and network errors
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('HKJC API request timed out');
+      return NextResponse.json(
+        { error: 'HKJC API request timed out after 30 seconds' },
+        { status: 504 }
+      );
     }
 
-    // Convert BigInt values to strings for JSON serialization
-    const serializableResults = savedResults.map(result => ({
-      ...result,
-      totalInvestment: result.totalInvestment?.toString() || null,
-      jackpot: result.jackpot?.toString() || null,
-      estimatedPrize: result.estimatedPrize?.toString() || null
-    }));
-
-    const serializableExistingDraws = existingDraws.map(draw => ({
-      ...draw,
-      totalInvestment: draw.totalInvestment?.toString() || null,
-      jackpot: draw.jackpot?.toString() || null,
-      estimatedPrize: draw.estimatedPrize?.toString() || null
-    }));
-
-    return NextResponse.json({
-      message: `Successfully processed ${draws.length} draws`,
-      totalFetched: draws.length,
-      saved: savedResults.length,
-      existing: existingDraws.length,
-      savedResults: serializableResults,
-      existingDraws: serializableExistingDraws
-    });
-
-  } catch (error) {
     console.error('Error in POST /api/draws:', error);
     return NextResponse.json(
       { error: 'Failed to fetch draw results from HKJC API' },
