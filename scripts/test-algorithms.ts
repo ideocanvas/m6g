@@ -19,6 +19,7 @@
 import {
   getHistoricalFrequency,
   getFollowOnNumbers,
+  getAdvancedFollowOnNumbers,
   generateRandomNumbers,
   generateBalancedNumbers,
   generateClassicCombinations,
@@ -88,7 +89,7 @@ interface CombinationType {
 
 interface SuggestionAlgorithm {
   name: string;
-  type: 'hot_follow_on' | 'hot' | 'cold' | 'random' | 'balanced';
+  type: 'hot_follow_on' | 'advanced_follow_on' | 'hot' | 'cold' | 'random' | 'balanced';
 }
 
 interface GenerationAlgorithm {
@@ -170,6 +171,7 @@ const COMBINATION_TYPES: CombinationType[] = [
 // Suggestion algorithms to test (all algorithms)
 const SUGGESTION_ALGORITHMS: SuggestionAlgorithm[] = [
   { name: 'Hot Follow-on', type: 'hot_follow_on' },
+  { name: 'Advanced Follow-on', type: 'advanced_follow_on' },
   { name: 'Hot Numbers', type: 'hot' },
   { name: 'Cold Numbers', type: 'cold' },
   { name: 'Random', type: 'random' },
@@ -201,6 +203,10 @@ function getNumbersByAlgorithm(
       }
       const followOnResults = getFollowOnNumbers(historicalDraws);
       return followOnResults.slice(0, 15).map(r => r.number);
+
+    case 'advanced_follow_on':
+      const advancedFollowOnResults = getAdvancedFollowOnNumbers(historicalDraws);
+      return advancedFollowOnResults.slice(0, 15).map(r => r.number);
 
     case 'hot':
       const hotResults = getHistoricalFrequency(historicalDraws, 'hot');
@@ -394,7 +400,7 @@ function calculatePrize(combination: number[], actualDraw: DrawRecord, splitNumb
 function calculatePartialBetPrize(combination: number[], splitNumbers: number[], actualDraw: DrawRecord): { prizeCategory: string; prizeAmount: number } {
   // Get the 5 common numbers (all numbers except the two split numbers)
   const commonNumbers = combination.filter(num => !splitNumbers.includes(num));
-  
+
   if (commonNumbers.length !== 5) {
     throw new Error(`Invalid partial bet: expected 5 common numbers, got ${commonNumbers.length}`);
   }
@@ -405,7 +411,7 @@ function calculatePartialBetPrize(combination: number[], splitNumbers: number[],
   // Calculate prize for each partial bet
   for (const splitNumber of splitNumbers) {
     const partialCombination = [...commonNumbers, splitNumber];
-    
+
     let matchedWinning = 0;
     for (const num of partialCombination) {
       if (actualDraw.winningNumbers.includes(num)) {
