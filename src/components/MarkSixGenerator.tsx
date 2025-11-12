@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import NumberSelection from './NumberSelection';
 import ResultsPanel from './ResultsPanel';
+import { AdUnit } from './AdUnit';
 import { Combination, DrawResult, SavedGeneration } from '@/types/mark6';
 import { labels, LanguageCode } from '@/lib/i18n';
 
@@ -280,43 +281,53 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full max-w-7xl mx-auto p-4 gap-6 min-h-screen">
-      {/* Left Panel: Generator Controls */}
-      <div className="w-full md:w-1/2">
-        <NumberSelection
-          selectedNumbers={selectedNumbers}
-          luckyNumber={luckyNumber}
-          combinationCount={combinationCount}
-          isDouble={isDouble}
-          generationMethod={generationMethod}
-          language={language}
-          onNumberToggle={toggleNumberSelection}
-          onLuckyNumberChange={setLuckyNumber}
-          onCombinationCountChange={setCombinationCount}
-          onIsDoubleChange={setIsDouble}
-          onGenerationMethodChange={setGenerationMethod}
-          onClearSelection={clearSelection}
-          onSelectAll={selectAllNumbers}
-          onSuggestNumbers={suggestNumbers}
-          onGenerate={generateCombinations}
-          requiredCount={getRequiredCount()}
-          isGenerating={isGenerating}
+    <div className="flex flex-col w-full max-w-7xl mx-auto p-4 gap-6 min-h-screen">
+      {/* Ad Unit - Horizontal Banner */}
+      <div className="w-full">
+        <AdUnit
+          adSlot="2527138758"
+          adFormat="horizontal"
+          style={{ margin: '0 auto' }}
         />
       </div>
 
-      {/* Right Panel: Results and Records */}
-      <div className="w-full md:w-1/2">
-        <ResultsPanel
-          combinations={combinations}
-          generationId={currentGenerationId}
-          drawResults={drawResults}
-          language={language}
-          onCheckDrawResults={checkDrawResults}
-          savedGenerations={savedGenerations}
-          onLoadGeneration={loadGeneration}
-          onDeleteGeneration={deleteGeneration}
-        />
+      <div className="flex flex-col md:flex-row w-full gap-6">
+        {/* Left Panel: Generator Controls */}
+        <div className="w-full md:w-1/2">
+          <NumberSelection
+            selectedNumbers={selectedNumbers}
+            luckyNumber={luckyNumber}
+            combinationCount={combinationCount}
+            isDouble={isDouble}
+            generationMethod={generationMethod}
+            language={language}
+            onNumberToggle={toggleNumberSelection}
+            onLuckyNumberChange={setLuckyNumber}
+            onCombinationCountChange={setCombinationCount}
+            onIsDoubleChange={setIsDouble}
+            onGenerationMethodChange={setGenerationMethod}
+            onClearSelection={clearSelection}
+            onSelectAll={selectAllNumbers}
+            onSuggestNumbers={suggestNumbers}
+            onGenerate={generateCombinations}
+            requiredCount={getRequiredCount()}
+            isGenerating={isGenerating}
+          />
+        </div>
 
+        {/* Right Panel: Results and Records */}
+        <div className="w-full md:w-1/2">
+          <ResultsPanel
+            combinations={combinations}
+            generationId={currentGenerationId}
+            drawResults={drawResults}
+            language={language}
+            onCheckDrawResults={checkDrawResults}
+            savedGenerations={savedGenerations}
+            onLoadGeneration={loadGeneration}
+            onDeleteGeneration={deleteGeneration}
+          />
+        </div>
       </div>
     </div>
   );

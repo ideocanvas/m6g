@@ -1,4 +1,5 @@
-import { GoogleAdSense } from "@/components/GoogleAdSense";
+import { GoogleAdSense } from '@/components/GoogleAdSense';
+import { LanguageCode } from '@/lib/i18n';
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -15,16 +16,25 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Mark Six Generator",
-  description: "Generate Mark Six lottery combinations with AI assistance. For entertainment purposes only - no guarantee of winning.",
+  description: "Generate Mark Six lottery combinations with AI assistance",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
+interface RootLayoutProps {
   children: React.ReactNode;
-}>) {
+  params: Promise<{
+    lang: LanguageCode;
+  }>;
+}
+
+export default async function RootLayout({
+  children,
+  params,
+}: Readonly<RootLayoutProps>) {
+  // Use cookie language if available, otherwise use URL param
+  const htmlLang =  (await params).lang === 'en' ? 'en' : 'zh-TW';
+  console.log("htmlLang", htmlLang);
   return (
-    <html lang="en">
+    <html lang={htmlLang}>
       <head>
         <GoogleAdSense />
       </head>
