@@ -33,7 +33,8 @@ export function AdUnit({ adSlot, adFormat = "auto", style }: AdUnitProps) {
             window.adsbygoogle.push({});
             clearInterval(intervalId);
           }
-        } catch {
+        } catch (error) {
+          console.error("googleadsense", error);
           clearInterval(intervalId);
         }
       }, 100);
