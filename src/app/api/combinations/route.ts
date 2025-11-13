@@ -5,7 +5,7 @@ import {
   generateEnsembleCombinations,
   generateBayesianCombinations,
   generateClassicCombinationsOptimized,
-  generateAdvancedFollowOnCombinations,
+  generateFollowOnCombinations,
 } from "@/lib/algorithms";
 
 interface GenerateCombinationRequest {
@@ -125,13 +125,14 @@ export async function POST(request: NextRequest) {
         );
         break;
       case "follow_on":
-        console.log(`Generating advanced follow-on combinations for ${currentDate}`);
-        algorithmResults = generateAdvancedFollowOnCombinations(
+        console.log(`Generating follow-on combinations for ${currentDate}`);
+        algorithmResults = generateFollowOnCombinations(
           combinationCount,
           selectedNumbers,
           luckyNumber,
           isDouble,
-          pastResults
+          pastResults,
+          lastDrawNumbers || []
         );
         break;
       case "ensemble":

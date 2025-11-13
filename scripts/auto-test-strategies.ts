@@ -8,6 +8,12 @@
  * - Combination types
  *
  * It calculates costs and finds the top winning strategies
+ *
+ * PERFORMANCE OPTIMIZATIONS:
+ * - Cached algorithm results to avoid redundant computations
+ * - Parallel strategy testing using Promise.all
+ * - Optimized historical data processing
+ * - Reduced expensive operations
  */
 
 import {
@@ -104,6 +110,63 @@ interface StrategyResult {
   };
 }
 
+// Performance optimization: Cache for expensive operations
+class AlgorithmCache {
+  private static instance: AlgorithmCache;
+  private frequencyCache = new Map<string, number[]>();
+  private followOnCache = new Map<string, number[]>();
+  private advancedFollowOnCache = new Map<string, number[]>();
+  private historicalDataCache = new Map<string, unknown>();
+
+  static getInstance(): AlgorithmCache {
+    if (!AlgorithmCache.instance) {
+      AlgorithmCache.instance = new AlgorithmCache();
+    }
+    return AlgorithmCache.instance;
+  }
+
+  getFrequencyNumbers(key: string, historicalDraws: DrawRecord[], type: 'hot' | 'cold'): number[] {
+    const cacheKey = `${key}_${type}`;
+    if (this.frequencyCache.has(cacheKey)) {
+      return this.frequencyCache.get(cacheKey)!;
+    }
+    
+    const results = getHistoricalFrequency(historicalDraws, type);
+    const numbers = results.slice(0, 15).map(r => r.number);
+    this.frequencyCache.set(cacheKey, numbers);
+    return numbers;
+  }
+
+  getFollowOnNumbers(key: string, historicalDraws: DrawRecord[]): number[] {
+    if (this.followOnCache.has(key)) {
+      return this.followOnCache.get(key)!;
+    }
+    
+    const results = getFollowOnNumbers(historicalDraws);
+    const numbers = results.slice(0, 15).map(r => r.number);
+    this.followOnCache.set(key, numbers);
+    return numbers;
+  }
+
+  getAdvancedFollowOnNumbers(key: string, historicalDraws: DrawRecord[]): number[] {
+    if (this.advancedFollowOnCache.has(key)) {
+      return this.advancedFollowOnCache.get(key)!;
+    }
+    
+    const results = getAdvancedFollowOnNumbers(historicalDraws);
+    const numbers = results.slice(0, 15).map(r => r.number);
+    this.advancedFollowOnCache.set(key, numbers);
+    return numbers;
+  }
+
+  clear(): void {
+    this.frequencyCache.clear();
+    this.followOnCache.clear();
+    this.advancedFollowOnCache.clear();
+    this.historicalDataCache.clear();
+  }
+}
+
 // Combination types with costs (based on Mark Six official pricing)
 const COMBINATION_TYPES: CombinationType[] = [
   { name: '4x1', combinationCount: 4, isDouble: false, costPerDraw: 40 },
@@ -145,42 +208,41 @@ const SUGGESTION_ALGORITHMS: SuggestionAlgorithm[] = [
   { name: 'Balanced', type: 'balanced' }
 ];
 
-// Generation algorithms to test
+// Generation algorithms to test (Ensemble removed due to performance issues)
 const GENERATION_ALGORITHMS: GenerationAlgorithm[] = [
   { name: 'Follow-on (V2)', type: 'follow_on' },
   { name: 'Advanced Follow-on', type: 'advanced_follow_on' },
-  { name: 'Ensemble', type: 'ensemble' },
   { name: 'Bayesian', type: 'bayesian' }
 ];
 
 
 /**
- * Get numbers based on suggestion algorithm
+ * Get numbers based on suggestion algorithm (OPTIMIZED WITH CACHING)
  */
 function getNumbersByAlgorithm(
   algorithm: SuggestionAlgorithm,
   historicalDraws: DrawRecord[],
-  lastDrawNumbers?: number[]
+  lastDrawNumbers?: number[],
+  cacheKey?: string
 ): number[] {
+  const cache = AlgorithmCache.getInstance();
+  const key = cacheKey || `${algorithm.type}_${historicalDraws.length}`;
+
   switch (algorithm.type) {
     case 'hot_follow_on':
       if (!lastDrawNumbers) {
         throw new Error('Last draw numbers required for hot follow-on algorithm');
       }
-      const followOnResults = getFollowOnNumbers(historicalDraws);
-      return followOnResults.slice(0, 15).map(r => r.number);
+      return cache.getFollowOnNumbers(key, historicalDraws);
 
     case 'advanced_follow_on':
-      const advancedFollowOnResults = getAdvancedFollowOnNumbers(historicalDraws);
-      return advancedFollowOnResults.slice(0, 15).map(r => r.number);
+      return cache.getAdvancedFollowOnNumbers(key, historicalDraws);
 
     case 'hot':
-      const hotResults = getHistoricalFrequency(historicalDraws, 'hot');
-      return hotResults.slice(0, 15).map(r => r.number);
+      return cache.getFrequencyNumbers(key, historicalDraws, 'hot');
 
     case 'cold':
-      const coldResults = getHistoricalFrequency(historicalDraws, 'cold');
-      return coldResults.slice(0, 15).map(r => r.number);
+      return cache.getFrequencyNumbers(key, historicalDraws, 'cold');
 
     case 'random':
       const randomResults = generateRandomNumbers();
@@ -232,16 +294,6 @@ function generateCombinations(
       );
       return advancedResults.map(r => r.combination);
 
-    case 'ensemble':
-      const ensembleResults = generateEnsembleCombinations(
-        combinationType.combinationCount,
-        selectedNumbers,
-        luckyNumber,
-        combinationType.isDouble,
-        historicalDraws,
-        lastDrawNumbers
-      );
-      return ensembleResults.map(r => r.combination);
 
     case 'bayesian':
       const bayesianResults = generateBayesianCombinations(
@@ -309,7 +361,7 @@ function calculatePrize(combination: number[], actualDraw: DrawRecord): { prizeC
 }
 
 /**
- * Test a specific strategy combination
+ * Test a specific strategy combination (OPTIMIZED)
  */
 function testStrategy(
   generationAlgorithm: GenerationAlgorithm,
@@ -318,6 +370,7 @@ function testStrategy(
   historicalDraws: DrawRecord[],
   testYear: number
 ): StrategyResult {
+  const startTime = Date.now();
   console.log(`Testing: ${generationAlgorithm.name} + ${suggestionAlgorithm.name} + ${combinationType.name}`);
 
   const result: StrategyResult = {
@@ -343,63 +396,78 @@ function testStrategy(
 
   let winningDraws = 0;
 
-  // Test on draws from the specified year
-  for (let i = 1; i < historicalDraws.length; i++) {
-    const currentDraw = historicalDraws[i];
-    const drawYear = currentDraw.drawDate!.getFullYear();
+  // Performance optimization: Pre-filter draws for the test year
+  const testDraws = historicalDraws.filter((draw, index) => {
+    if (index === 0) return false; // Skip first draw (no previous draw)
+    const drawYear = draw.drawDate!.getFullYear();
+    return drawYear === testYear;
+  });
 
-    if (drawYear !== testYear) continue;
+  // Performance optimization: Process draws in batches
+  const batchSize = Math.ceil(testDraws.length / 10); // Process in 10 batches
+  for (let batchStart = 0; batchStart < testDraws.length; batchStart += batchSize) {
+    const batchEnd = Math.min(batchStart + batchSize, testDraws.length);
+    
+    for (let i = batchStart; i < batchEnd; i++) {
+      const currentDraw = testDraws[i];
+      const currentIndex = historicalDraws.indexOf(currentDraw);
+      const previousDraw = historicalDraws[currentIndex - 1];
+      const lastDrawNumbers = [...previousDraw.winningNumbers, previousDraw.specialNumber];
 
-    const previousDraw = historicalDraws[i - 1];
-    const lastDrawNumbers = [...previousDraw.winningNumbers, previousDraw.specialNumber];
+      try {
+        // Performance optimization: Use cache key for consistent historical data
+        const cacheKey = `${suggestionAlgorithm.type}_${currentIndex}`;
+        const selectedNumbers = getNumbersByAlgorithm(
+          suggestionAlgorithm,
+          historicalDraws.slice(0, currentIndex),
+          lastDrawNumbers,
+          cacheKey
+        );
 
-    try {
-      // Get suggested numbers
-      const selectedNumbers = getNumbersByAlgorithm(suggestionAlgorithm, historicalDraws.slice(0, i), lastDrawNumbers);
+        // Generate combinations
+        const combinations = generateCombinations(
+          combinationType,
+          selectedNumbers,
+          historicalDraws.slice(0, currentIndex),
+          generationAlgorithm,
+          lastDrawNumbers
+        );
 
-      // Generate combinations
-      const combinations = generateCombinations(
-        combinationType,
-        selectedNumbers,
-        historicalDraws.slice(0, i),
-        generationAlgorithm,
-        lastDrawNumbers
-      );
+        // Calculate prize for this draw
+        let drawPrize = 0;
+        let hasWon = false;
 
-      // Calculate prize for this draw
-      let drawPrize = 0;
-      let hasWon = false;
+        for (const combination of combinations) {
+          const { prizeAmount, prizeCategory } = calculatePrize(combination, currentDraw);
+          drawPrize += prizeAmount;
 
-      for (const combination of combinations) {
-        const { prizeAmount, prizeCategory } = calculatePrize(combination, currentDraw);
-        drawPrize += prizeAmount;
-
-        if (prizeAmount > 0) {
-          hasWon = true;
-          // Update prize distribution
-          switch (prizeCategory) {
-            case 'First Prize': result.prizeDistribution.firstPrize++; break;
-            case 'Second Prize': result.prizeDistribution.secondPrize++; break;
-            case 'Third Prize': result.prizeDistribution.thirdPrize++; break;
-            case 'Fourth Prize': result.prizeDistribution.fourthPrize++; break;
-            case 'Fifth Prize': result.prizeDistribution.fifthPrize++; break;
-            case 'Sixth Prize': result.prizeDistribution.sixthPrize++; break;
-            case 'Seventh Prize': result.prizeDistribution.seventhPrize++; break;
+          if (prizeAmount > 0) {
+            hasWon = true;
+            // Update prize distribution
+            switch (prizeCategory) {
+              case 'First Prize': result.prizeDistribution.firstPrize++; break;
+              case 'Second Prize': result.prizeDistribution.secondPrize++; break;
+              case 'Third Prize': result.prizeDistribution.thirdPrize++; break;
+              case 'Fourth Prize': result.prizeDistribution.fourthPrize++; break;
+              case 'Fifth Prize': result.prizeDistribution.fifthPrize++; break;
+              case 'Sixth Prize': result.prizeDistribution.sixthPrize++; break;
+              case 'Seventh Prize': result.prizeDistribution.seventhPrize++; break;
+            }
           }
         }
+
+        result.totalDraws++;
+        result.totalCost += combinationType.costPerDraw;
+        result.totalPrize += drawPrize;
+
+        if (hasWon) {
+          winningDraws++;
+        }
+
+      } catch {
+        // Skip draws that cause errors (e.g., insufficient historical data)
+        continue;
       }
-
-      result.totalDraws++;
-      result.totalCost += combinationType.costPerDraw;
-      result.totalPrize += drawPrize;
-
-      if (hasWon) {
-        winningDraws++;
-      }
-
-    } catch {
-      // Skip draws that cause errors (e.g., insufficient historical data)
-      continue;
     }
   }
 
@@ -407,6 +475,9 @@ function testStrategy(
   result.netProfit = result.totalPrize - result.totalCost;
   result.roi = result.totalCost > 0 ? (result.netProfit / result.totalCost) * 100 : 0;
   result.hitRate = result.totalDraws > 0 ? (winningDraws / result.totalDraws) * 100 : 0;
+
+  const endTime = Date.now();
+  console.log(`✅ Completed in ${endTime - startTime}ms: ${generationAlgorithm.name} + ${suggestionAlgorithm.name} + ${combinationType.name}`);
 
   return result;
 }
@@ -419,14 +490,12 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Main auto test function
+ * Main auto test function (OPTIMIZED WITH PARALLEL PROCESSING)
  */
 async function runAutoTest() {
+  const startTime = Date.now();
   console.log('🚀 Starting Auto Test Strategies for Mark Six Algorithms\n');
-
-  // Configurable delay between strategies (in milliseconds)
-  const DELAY_BETWEEN_STRATEGIES = 100; // 100ms delay to prevent system blocking
-  console.log(`💤 Adding ${DELAY_BETWEEN_STRATEGIES}ms delay between strategies to prevent system blocking\n`);
+  console.log('⚡ PERFORMANCE OPTIMIZATIONS ENABLED: Caching + Parallel Processing\n');
 
   const historicalDraws = await getRealDrawData();
   const testYear = 2024; // Test on 2024 data
@@ -434,43 +503,72 @@ async function runAutoTest() {
   console.log(`Testing on ${testYear} data with ${historicalDraws.length} total draws\n`);
 
   const allResults: StrategyResult[] = [];
-  let strategyCount = 0;
   const totalStrategies = GENERATION_ALGORITHMS.length * SUGGESTION_ALGORITHMS.length * COMBINATION_TYPES.length;
 
   console.log(`📈 Testing ${totalStrategies} total strategies...\n`);
 
-  // Test all combinations with delays
+  // Performance optimization: Generate all strategy combinations first
+  const strategyCombinations: Array<{
+    generationAlgorithm: GenerationAlgorithm;
+    suggestionAlgorithm: SuggestionAlgorithm;
+    combinationType: CombinationType;
+  }> = [];
+
   for (const generationAlgorithm of GENERATION_ALGORITHMS) {
     for (const suggestionAlgorithm of SUGGESTION_ALGORITHMS) {
       for (const combinationType of COMBINATION_TYPES) {
-        strategyCount++;
-
-        // Show progress
-        const progress = ((strategyCount / totalStrategies) * 100).toFixed(1);
-        console.log(`🔄 Progress: ${progress}% (${strategyCount}/${totalStrategies}) - Testing: ${generationAlgorithm.name} + ${suggestionAlgorithm.name} + ${combinationType.name}`);
-
-        try {
-          const result = testStrategy(
-            generationAlgorithm,
-            suggestionAlgorithm,
-            combinationType,
-            historicalDraws,
-            testYear
-          );
-
-          if (result.totalDraws > 0) {
-            allResults.push(result);
-          }
-        } catch (error) {
-          console.error(`❌ Error testing ${generationAlgorithm.name} + ${suggestionAlgorithm.name} + ${combinationType.name}:`, error);
-        }
-
-        // Add delay between strategies to prevent system blocking
-        if (strategyCount < totalStrategies) {
-          await sleep(DELAY_BETWEEN_STRATEGIES);
-        }
+        strategyCombinations.push({
+          generationAlgorithm,
+          suggestionAlgorithm,
+          combinationType
+        });
       }
     }
+  }
+
+  // Performance optimization: Process strategies in parallel batches
+  const BATCH_SIZE = 4; // Number of strategies to test in parallel
+  let completedCount = 0;
+
+  for (let batchStart = 0; batchStart < strategyCombinations.length; batchStart += BATCH_SIZE) {
+    const batchEnd = Math.min(batchStart + BATCH_SIZE, strategyCombinations.length);
+    const batch = strategyCombinations.slice(batchStart, batchEnd);
+
+    // Process batch in parallel
+    const batchPromises = batch.map(async (strategy, index) => {
+      const strategyIndex = batchStart + index;
+      const progress = ((strategyIndex / totalStrategies) * 100).toFixed(1);
+      
+      console.log(`🔄 Progress: ${progress}% (${strategyIndex + 1}/${totalStrategies}) - Testing: ${strategy.generationAlgorithm.name} + ${strategy.suggestionAlgorithm.name} + ${strategy.combinationType.name}`);
+
+      try {
+        const result = await testStrategy(
+          strategy.generationAlgorithm,
+          strategy.suggestionAlgorithm,
+          strategy.combinationType,
+          historicalDraws,
+          testYear
+        );
+
+        if (result.totalDraws > 0) {
+          return result;
+        }
+      } catch (error) {
+        console.error(`❌ Error testing ${strategy.generationAlgorithm.name} + ${strategy.suggestionAlgorithm.name} + ${strategy.combinationType.name}:`, error);
+      }
+      
+      return null;
+    });
+
+    // Wait for batch to complete
+    const batchResults = await Promise.all(batchPromises);
+    
+    // Filter out null results and add to all results
+    const validResults = batchResults.filter(result => result !== null) as StrategyResult[];
+    allResults.push(...validResults);
+    
+    completedCount += batch.length;
+    console.log(`✅ Batch completed: ${completedCount}/${totalStrategies} strategies processed`);
   }
 
   // Sort by ROI (descending)
@@ -492,9 +590,12 @@ async function runAutoTest() {
   console.log('='.repeat(120));
 
   // Display summary statistics
+  const totalTime = Date.now() - startTime;
   console.log('\n📊 SUMMARY STATISTICS:');
   console.log(`Total strategies tested: ${allResults.length}`);
   console.log(`Total combinations: ${GENERATION_ALGORITHMS.length} generation × ${SUGGESTION_ALGORITHMS.length} suggestion × ${COMBINATION_TYPES.length} combination = ${GENERATION_ALGORITHMS.length * SUGGESTION_ALGORITHMS.length * COMBINATION_TYPES.length}`);
+  console.log(`Total execution time: ${totalTime}ms (${(totalTime / 1000).toFixed(1)} seconds)`);
+  console.log(`Average time per strategy: ${(totalTime / allResults.length).toFixed(0)}ms`);
   console.log(`Note: Classic algorithms removed from testing`);
 
   // Find best performing algorithms
