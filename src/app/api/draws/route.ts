@@ -241,6 +241,8 @@ export async function POST(request: NextRequest) {
 
       console.log(`Fetched ${draws.length} draws from HKJC API`);
 
+      console.log("draw:", JSON.stringify(draws, null, 2));
+
       // Process and save the draw results
       const savedResults = [];
       const existingDraws = [];
@@ -271,7 +273,7 @@ export async function POST(request: NextRequest) {
         if (match) {
           // Valid HKJC date format: convert to proper ISO format
           const [, datePart, timezonePart] = match;
-          drawDate = new Date(datePart + 'T00:00:00' + '+' + timezonePart);
+          drawDate = new Date(datePart + "T00:00:00" + "+" + timezonePart);
         } else {
           // Try parsing as standard date format
           drawDate = new Date(draw.drawDate);
@@ -282,7 +284,10 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const dateText = `${drawDate.getDate().toString().padStart(2, '0')}/${(drawDate.getMonth() + 1).toString().padStart(2, '0')}/${drawDate.getFullYear()}`;
+        // Using 'en-GB' locale to get the DD/MM/YYYY format
+        const dateText = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Asia/Hong_Kong",
+        }).format(drawDate);
 
         const drawData = {
           drawId: draw.id,
