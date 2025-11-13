@@ -30,6 +30,7 @@ export default function Select({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
   const selectRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,6 +58,22 @@ export default function Select({
       searchInputRef.current.focus();
     }
   }, [isOpen, searchable]);
+
+  useEffect(() => {
+    if (isOpen && selectRef.current) {
+      const rect = selectRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownHeight = 240; // Approximate max height of dropdown
+
+      // Show dropdown above if there's not enough space below but enough space above
+      if (spaceBelow < dropdownHeight && spaceAbove >= dropdownHeight) {
+        setDropdownPosition('top');
+      } else {
+        setDropdownPosition('bottom');
+      }
+    }
+  }, [isOpen]);
 
   const handleSelect = (option: SelectOption) => {
     if (!option.disabled) {
@@ -137,7 +154,11 @@ export default function Select({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+        <div
+          className={`absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto ${
+            dropdownPosition === 'bottom' ? 'mt-1 top-full' : 'mb-1 bottom-full'
+          }`}
+        >
           {/* Search Input */}
           {searchable && (
             <div className="p-2 border-b border-gray-100">
