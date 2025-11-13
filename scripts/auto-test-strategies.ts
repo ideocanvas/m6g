@@ -14,8 +14,6 @@ import {
   generateAdvancedFollowOnCombinations,
   generateBalancedNumbers,
   generateBayesianCombinations,
-  generateClassicCombinations,
-  generateClassicCombinationsOptimized,
   generateEnsembleCombinations,
   generateFollowOnCombinations,
   generateRandomNumbers,
@@ -82,7 +80,7 @@ interface SuggestionAlgorithm {
 
 interface GenerationAlgorithm {
   name: string;
-  type: 'classic' | 'classic_optimized' | 'follow_on' | 'ensemble' | 'bayesian' | 'advanced_follow_on';
+  type: 'follow_on' | 'ensemble' | 'bayesian' | 'advanced_follow_on';
 }
 
 interface StrategyResult {
@@ -147,9 +145,8 @@ const SUGGESTION_ALGORITHMS: SuggestionAlgorithm[] = [
   { name: 'Balanced', type: 'balanced' }
 ];
 
-// Generation algorithms to test (skip Classic V1 as it's too slow)
+// Generation algorithms to test
 const GENERATION_ALGORITHMS: GenerationAlgorithm[] = [
-  { name: 'Classic Optimized', type: 'classic_optimized' },
   { name: 'Follow-on (V2)', type: 'follow_on' },
   { name: 'Advanced Follow-on', type: 'advanced_follow_on' },
   { name: 'Ensemble', type: 'ensemble' },
@@ -214,26 +211,6 @@ function generateCombinations(
     : Math.floor(Math.random() * 49) + 1;
 
   switch (generationAlgorithm.type) {
-    case 'classic':
-      const classicResults = generateClassicCombinations(
-        combinationType.combinationCount,
-        selectedNumbers,
-        luckyNumber,
-        combinationType.isDouble,
-        historicalDraws
-      );
-      return classicResults.map(r => r.combination);
-
-    case 'classic_optimized':
-      const optimizedResults = generateClassicCombinationsOptimized(
-        combinationType.combinationCount,
-        selectedNumbers,
-        luckyNumber,
-        combinationType.isDouble,
-        historicalDraws
-      );
-      return optimizedResults.map(r => r.combination);
-
     case 'follow_on':
       const followOnResults = generateFollowOnCombinations(
         combinationType.combinationCount,
@@ -518,7 +495,7 @@ async function runAutoTest() {
   console.log('\n📊 SUMMARY STATISTICS:');
   console.log(`Total strategies tested: ${allResults.length}`);
   console.log(`Total combinations: ${GENERATION_ALGORITHMS.length} generation × ${SUGGESTION_ALGORITHMS.length} suggestion × ${COMBINATION_TYPES.length} combination = ${GENERATION_ALGORITHMS.length * SUGGESTION_ALGORITHMS.length * COMBINATION_TYPES.length}`);
-  console.log(`Note: Classic V1 algorithm skipped due to performance considerations`);
+  console.log(`Note: Classic algorithms removed from testing`);
 
   // Find best performing algorithms
   const bestByROI = allResults[0];
