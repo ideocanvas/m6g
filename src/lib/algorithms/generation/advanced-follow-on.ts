@@ -18,12 +18,6 @@ interface NumberProbability {
   probability: number;
 }
 
-interface AdvancedFollowOnConfig {
-  maxChainLength: number;
-  timeHorizons: number[]; // Number of draws to look back
-  patternThreshold: number;
-  conditionalProbabilityThreshold: number;
-}
 
 interface FollowOnChain {
   chain: number[];
@@ -65,65 +59,32 @@ export function generateAdvancedFollowOnCombinations(
   selectedNumbers: number[],
   luckyNumber: number,
   isDouble: boolean,
-  historicalDraws: DrawRecord[],
-  preCalculatedAnalysis?: AdvancedFollowOnAnalysis
+  historicalDraws: DrawRecord[]
 ): FollowOnCombinationResult[] {
   const startTime = Date.now();
 
-  // Use pre-calculated analysis or calculate new
-  let analysis: AdvancedFollowOnAnalysis;
-
-  if (preCalculatedAnalysis) {
-    if (DEBUG) console.log(`[ADV_FOLLOW_ON] Using pre-calculated analysis`);
-    analysis = preCalculatedAnalysis;
-  } else {
-    // Performance optimization: Use adaptive configuration based on data size
-    const config: AdvancedFollowOnConfig = {
-      maxChainLength: Math.min(3, Math.floor(historicalDraws.length / 100) + 1),
-      timeHorizons: historicalDraws.length > 100 ? [1, 3, 5, 10] : [1, 3], // Reduce horizons for small datasets
-      patternThreshold: 0.7,
-      conditionalProbabilityThreshold: 0.6
-    };
-
-    if (DEBUG) console.log(`[ADV_FOLLOW_ON] Starting analysis with ${historicalDraws.length} historical draws, config:`, config);
-
-    // Performance optimization: Limit analysis to recent draws for large datasets
-    const analysisDraws = historicalDraws.length > 200
-      ? historicalDraws.slice(-200)
-      : historicalDraws;
-
-    // Analyze multi-step follow-on chains
-    const followOnChains = analyzeMultiStepChains(analysisDraws, config);
-
-    // Calculate conditional probabilities
-    const conditionalProbs = calculateConditionalProbabilities(analysisDraws, config);
-
-    // Cluster patterns by similar conditions
-    const patternClusters = clusterPatterns(analysisDraws, config);
-
-    // Generate weighted probabilities across time horizons
-    const weightedProbabilities = calculateWeightedProbabilities(
-      analysisDraws,
-      followOnChains,
-      conditionalProbs,
-      patternClusters
-    );
-
-    analysis = {
-      followOnChains,
-      conditionalProbs,
-      patternClusters,
-      weightedProbabilities
-    };
+  // Validate that we have enough selected numbers
+  const combinationSize = isDouble ? 7 : 6;
+  if (selectedNumbers.length < combinationSize) {
+    throw new Error(`Need at least ${combinationSize} selected numbers for ${isDouble ? 'double' : 'regular'} combinations`);
   }
 
-  // Generate combinations based on advanced analysis
-  const result = generateCombinationsFromAnalysis(
+  if (DEBUG) console.log(`[ADV_FOLLOW_ON] Generating ${combinationCount} combinations from ${selectedNumbers.length} selected numbers`);
+
+  // Calculate time-weighted individual probabilities
+  const individualProbs = calculateTimeWeightedProbabilities(selectedNumbers, historicalDraws);
+
+  // Calculate pair probabilities
+  const pairProbs = calculatePairProbabilities(selectedNumbers, historicalDraws);
+
+  // Generate weighted combinations from selected numbers only
+  const result = generateProbabilityBasedCombinations(
     combinationCount,
     selectedNumbers,
     luckyNumber,
     isDouble,
-    analysis.weightedProbabilities
+    individualProbs,
+    pairProbs
   );
 
   const totalTime = Date.now() - startTime;
@@ -132,7 +93,7 @@ export function generateAdvancedFollowOnCombinations(
   // For double combinations, calculate split numbers based on least winning probability
   const finalResults = result.map((item) => {
     let splitNumbers: number[] = [];
-    
+
     if (isDouble && item.combination.length === 7) {
       // Calculate which two numbers have the least chance to win
       splitNumbers = calculateSplitNumbers(item.combination, historicalDraws);
@@ -148,249 +109,125 @@ export function generateAdvancedFollowOnCombinations(
 }
 
 /**
- * Analyze multi-step follow-on chains
+ * Calculate time-weighted individual probabilities for selected numbers
  */
-function analyzeMultiStepChains(
-  historicalDraws: DrawRecord[],
-  config: AdvancedFollowOnConfig
-): FollowOnChain[] {
-  const chains: FollowOnChain[] = [];
-
-  // Analyze chains for each time horizon
-  for (const horizon of config.timeHorizons) {
-    for (let i = horizon; i < historicalDraws.length; i++) {
-      const currentDraw = historicalDraws[i];
-      const previousDraws = historicalDraws.slice(i - horizon, i);
-
-      // Analyze chains of different lengths
-      for (let chainLength = 1; chainLength <= config.maxChainLength; chainLength++) {
-        const chain = analyzeChain(previousDraws, currentDraw, chainLength, horizon);
-        if (chain) {
-          chains.push(chain);
-        }
-      }
-    }
-  }
-
-  return chains;
-}
-
-/**
- * Analyze a specific chain pattern
- */
-function analyzeChain(
-  previousDraws: DrawRecord[],
-  currentDraw: DrawRecord,
-  chainLength: number,
-  timeHorizon: number
-): FollowOnChain | null {
-  if (previousDraws.length < chainLength) return null;
-
-  const chainNumbers: number[] = [];
-
-  // Build the chain from previous draws
-  for (let i = 0; i < chainLength; i++) {
-    const draw = previousDraws[previousDraws.length - 1 - i];
-    chainNumbers.push(...draw.winningNumbers, draw.specialNumber);
-  }
-
-  // Check if current draw contains numbers from the chain
-  const currentNumbers = [...currentDraw.winningNumbers, currentDraw.specialNumber];
-  const matchingNumbers = currentNumbers.filter(num => chainNumbers.includes(num));
-
-  if (matchingNumbers.length > 0) {
-    return {
-      chain: chainNumbers.slice(0, 7), // Limit to reasonable size
-      frequency: matchingNumbers.length,
-      probability: matchingNumbers.length / currentNumbers.length,
-      timeHorizon
-    };
-  }
-
-  return null;
-}
-
-/**
- * Calculate conditional probabilities based on multiple triggers
- */
-function calculateConditionalProbabilities(
-  historicalDraws: DrawRecord[],
-  config: AdvancedFollowOnConfig
-): ConditionalProbability[] {
-  const conditionalProbs: ConditionalProbability[] = [];
-  const maxDrawsToAnalyze = Math.min(100, historicalDraws.length);
-
-  // Performance optimization: Use recent draws only and limit analysis
-  for (let i = Math.max(1, historicalDraws.length - maxDrawsToAnalyze); i < historicalDraws.length; i++) {
-    const previousDraw = historicalDraws[i - 1];
-    const currentDraw = historicalDraws[i];
-
-    const previousNumbers = [...previousDraw.winningNumbers, previousDraw.specialNumber];
-    const currentNumbers = [...currentDraw.winningNumbers, currentDraw.specialNumber];
-
-    // Performance optimization: Limit trigger size and use sampling for large datasets
-    const maxTriggerSize = historicalDraws.length > 50 ? 2 : 3;
-
-    for (let triggerSize = 1; triggerSize <= maxTriggerSize; triggerSize++) {
-      // Performance optimization: Use limited number of trigger combinations
-      const triggers = getNumberCombinationsOptimized(previousNumbers, triggerSize, 20);
-
-      for (const trigger of triggers) {
-        const matchingNumbers = currentNumbers.filter(num =>
-          !trigger.includes(num) // Exclude trigger numbers from targets
-        );
-
-        if (matchingNumbers.length > 0) {
-          const probability = matchingNumbers.length / (7 - triggerSize);
-          const confidence = calculateConfidence(trigger, historicalDraws);
-
-          if (probability >= config.conditionalProbabilityThreshold) {
-            conditionalProbs.push({
-              triggerNumbers: trigger,
-              targetNumbers: matchingNumbers,
-              probability,
-              confidence
-            });
-          }
-        }
-      }
-    }
-  }
-
-  return conditionalProbs;
-}
-
-/**
- * Cluster patterns by similar draw conditions
- */
-function clusterPatterns(
-  historicalDraws: DrawRecord[],
-  config: AdvancedFollowOnConfig
-): PatternCluster[] {
-  const clusters: PatternCluster[] = [];
-
-  for (const draw of historicalDraws) {
-    if (!draw.drawDate) continue;
-
-    // Handle both Date objects and string dates
-    const drawDate = typeof draw.drawDate === 'string' ? new Date(draw.drawDate) : draw.drawDate;
-
-    const conditions = {
-      drawDay: drawDate.getDay(),
-      month: drawDate.getMonth(),
-      season: Math.floor(drawDate.getMonth() / 3) + 1
-    };
-
-    const numbers = [...draw.winningNumbers, draw.specialNumber];
-
-    // Find similar cluster or create new one
-    let bestCluster: PatternCluster | null = null;
-    let bestSimilarity = 0;
-
-    for (const cluster of clusters) {
-      const similarity = calculatePatternSimilarity(numbers, cluster.numbers, conditions, cluster.conditions);
-      if (similarity > bestSimilarity && similarity >= config.patternThreshold) {
-        bestCluster = cluster;
-        bestSimilarity = similarity;
-      }
-    }
-
-    if (bestCluster) {
-      // Update existing cluster
-      bestCluster.frequency++;
-      bestCluster.similarity = (bestCluster.similarity + bestSimilarity) / 2;
-    } else {
-      // Create new cluster
-      clusters.push({
-        numbers,
-        frequency: 1,
-        similarity: 1.0,
-        conditions
-      });
-    }
-  }
-
-  return clusters.filter(cluster => cluster.frequency > 1); // Only keep clusters with multiple occurrences
-}
-
-/**
- * Calculate weighted probabilities across different time horizons
- */
-function calculateWeightedProbabilities(
-  historicalDraws: DrawRecord[],
-  followOnChains: FollowOnChain[],
-  conditionalProbs: ConditionalProbability[],
-  patternClusters: PatternCluster[]
+function calculateTimeWeightedProbabilities(
+  selectedNumbers: number[],
+  historicalDraws: DrawRecord[]
 ): Map<number, number> {
   const probabilities = new Map<number, number>();
 
-  // Initialize all numbers with base probability
-  for (let i = 1; i <= 49; i++) {
-    probabilities.set(i, 0.01); // Base probability
-  }
+  for (const num of selectedNumbers) {
+    // Calculate probabilities for different time horizons
+    const prob1 = calculateProbabilityWithinDraws(num, historicalDraws, 1);
+    const prob2 = calculateProbabilityWithinDraws(num, historicalDraws, 2);
+    const prob3 = calculateProbabilityWithinDraws(num, historicalDraws, 3);
 
-  // Apply follow-on chain probabilities
-  for (const chain of followOnChains) {
-    const weight = chain.probability * (1 / chain.timeHorizon);
-    for (const num of chain.chain) {
-      const currentProb = probabilities.get(num) || 0;
-      probabilities.set(num, currentProb + weight);
-    }
-  }
-
-  // Apply conditional probabilities
-  for (const cp of conditionalProbs) {
-    const weight = cp.probability * cp.confidence;
-    for (const num of cp.targetNumbers) {
-      const currentProb = probabilities.get(num) || 0;
-      probabilities.set(num, currentProb + weight);
-    }
-  }
-
-  // Apply pattern cluster probabilities
-  for (const cluster of patternClusters) {
-    const weight = cluster.frequency * cluster.similarity / historicalDraws.length;
-    for (const num of cluster.numbers) {
-      const currentProb = probabilities.get(num) || 0;
-      probabilities.set(num, currentProb + weight);
-    }
-  }
-
-  // Normalize probabilities
-  const total = Array.from(probabilities.values()).reduce((sum, prob) => sum + prob, 0);
-  for (const [num, prob] of probabilities) {
-    probabilities.set(num, prob / total);
+    // Merge with weighted average (1-draw: 0.5, 2-draw: 0.3, 3-draw: 0.2)
+    const finalProb = (prob1 * 0.5) + (prob2 * 0.3) + (prob3 * 0.2);
+    probabilities.set(num, finalProb);
   }
 
   return probabilities;
 }
 
 /**
- * Generate combinations from advanced analysis
+ * Calculate probability of a number appearing within N draws
  */
-function generateCombinationsFromAnalysis(
+function calculateProbabilityWithinDraws(
+  number: number,
+  historicalDraws: DrawRecord[],
+  drawsToCheck: number
+): number {
+  if (historicalDraws.length <= drawsToCheck) return 0;
+
+  let appearances = 0;
+  let totalChecks = 0;
+
+  for (let i = drawsToCheck; i < historicalDraws.length; i++) {
+    const checkDraws = historicalDraws.slice(i - drawsToCheck, i);
+    const appearsInWindow = checkDraws.some(draw =>
+      draw.winningNumbers.includes(number) || draw.specialNumber === number
+    );
+
+    if (appearsInWindow) {
+      appearances++;
+    }
+    totalChecks++;
+  }
+
+  return totalChecks > 0 ? appearances / totalChecks : 0;
+}
+
+/**
+ * Calculate pair probabilities for selected numbers
+ */
+function calculatePairProbabilities(
+  selectedNumbers: number[],
+  historicalDraws: DrawRecord[]
+): Map<string, number> {
+  const pairProbs = new Map<string, number>();
+
+  // Generate all possible pairs from selected numbers
+  for (let i = 0; i < selectedNumbers.length; i++) {
+    for (let j = i + 1; j < selectedNumbers.length; j++) {
+      const num1 = selectedNumbers[i];
+      const num2 = selectedNumbers[j];
+      const pairKey = `${Math.min(num1, num2)},${Math.max(num1, num2)}`;
+
+      let coOccurrences = 0;
+      let totalDraws = 0;
+
+      for (const draw of historicalDraws) {
+        const drawNumbers = [...draw.winningNumbers, draw.specialNumber];
+        const hasNum1 = drawNumbers.includes(num1);
+        const hasNum2 = drawNumbers.includes(num2);
+
+        if (hasNum1 && hasNum2) {
+          coOccurrences++;
+        }
+        totalDraws++;
+      }
+
+      const probability = totalDraws > 0 ? coOccurrences / totalDraws : 0;
+      pairProbs.set(pairKey, probability);
+    }
+  }
+
+  return pairProbs;
+}
+
+/**
+ * Generate probability-based combinations from selected numbers only
+ */
+function generateProbabilityBasedCombinations(
   combinationCount: number,
   selectedNumbers: number[],
   luckyNumber: number,
   isDouble: boolean,
-  weightedProbabilities: Map<number, number>
+  individualProbs: Map<number, number>,
+  pairProbs: Map<string, number>
 ): FollowOnCombinationResult[] {
   const combinations: FollowOnCombinationResult[] = [];
   const usedCombinations = new Set<string>();
+  const combinationSize = isDouble ? 7 : 6;
 
-  // Convert probabilities to weighted array for selection
+  // Convert individual probabilities to weighted array
   const weightedNumbers: Array<{ number: number; weight: number }> = [];
-  for (const [num, prob] of weightedProbabilities) {
+  for (const [num, prob] of individualProbs) {
     weightedNumbers.push({ number: num, weight: prob });
   }
 
   // Sort by probability (descending)
   weightedNumbers.sort((a, b) => b.weight - a.weight);
 
-  // Generate combinations - require at least 6 numbers for regular, 7 for double
-  const requiredNumbers = isDouble ? 7 : 6;
-  while (combinations.length < combinationCount && weightedNumbers.length >= requiredNumbers) {
-    const combination = selectWeightedCombination(weightedNumbers, luckyNumber, isDouble);
+  while (combinations.length < combinationCount && weightedNumbers.length >= combinationSize) {
+    const combination = selectWeightedCombinationFromSelected(
+      weightedNumbers,
+      combinationSize,
+      pairProbs
+    );
+
     const combinationKey = combination.sort((a, b) => a - b).join(',');
 
     if (!usedCombinations.has(combinationKey)) {
@@ -398,7 +235,7 @@ function generateCombinationsFromAnalysis(
       combinations.push({
         combination,
         sequenceNumber: combinations.length + 1,
-        weights: weightedProbabilities
+        weights: individualProbs
       });
     }
   }
@@ -407,49 +244,42 @@ function generateCombinationsFromAnalysis(
 }
 
 /**
- * Select weighted combination based on probabilities
+ * Select weighted combination from selected numbers considering pair probabilities
  */
-function selectWeightedCombination(
+function selectWeightedCombinationFromSelected(
   weightedNumbers: Array<{ number: number; weight: number }>,
-  luckyNumber: number,
-  isDouble: boolean
+  combinationSize: number,
+  pairProbs: Map<string, number>
 ): number[] {
   const combination: number[] = [];
   const availableNumbers = [...weightedNumbers];
 
-  // Select 6 main numbers using weighted random selection
-  while (combination.length < 6 && availableNumbers.length > 0) {
+  // Select numbers using weighted random selection with pair consideration
+  while (combination.length < combinationSize && availableNumbers.length > 0) {
     const totalWeight = availableNumbers.reduce((sum, item) => sum + item.weight, 0);
     let random = Math.random() * totalWeight;
 
     for (let i = 0; i < availableNumbers.length; i++) {
       random -= availableNumbers[i].weight;
       if (random <= 0) {
-        combination.push(availableNumbers[i].number);
-        availableNumbers.splice(i, 1);
-        break;
-      }
-    }
-  }
+        const selectedNum = availableNumbers[i].number;
 
-  // For double combinations, ensure we have 7 numbers total
-  if (isDouble) {
-    // If lucky number is not already included, add it
-    if (!combination.includes(luckyNumber)) {
-      combination.push(luckyNumber);
-    }
-    
-    // If we still don't have 7 numbers, add another number
-    if (combination.length < 7 && availableNumbers.length > 0) {
-      const totalWeight = availableNumbers.reduce((sum, item) => sum + item.weight, 0);
-      let random = Math.random() * totalWeight;
-
-      for (let i = 0; i < availableNumbers.length; i++) {
-        random -= availableNumbers[i].weight;
-        if (random <= 0) {
-          combination.push(availableNumbers[i].number);
-          break;
+        // Apply pair probability boost if this number pairs well with existing combination
+        let pairBoost = 1.0;
+        if (combination.length > 0) {
+          const pairScores = combination.map(existingNum => {
+            const pairKey = `${Math.min(existingNum, selectedNum)},${Math.max(existingNum, selectedNum)}`;
+            return pairProbs.get(pairKey) || 0;
+          });
+          pairBoost = 1.0 + (Math.max(...pairScores) * 0.5); // Boost up to 50% for good pairs
         }
+
+        // Apply the selection with pair boost
+        if (Math.random() < pairBoost) {
+          combination.push(selectedNum);
+          availableNumbers.splice(i, 1);
+        }
+        break;
       }
     }
   }
@@ -458,126 +288,13 @@ function selectWeightedCombination(
 }
 
 
-/**
- * Helper function to get number combinations with performance optimization
- */
-function getNumberCombinationsOptimized(numbers: number[], size: number, maxResults: number = 50): number[][] {
-  const result: number[][] = [];
-  const numbersToUse = numbers.slice(0, Math.min(10, numbers.length)); // Limit input size
-
-  function backtrack(start: number, current: number[]) {
-    if (current.length === size) {
-      result.push([...current]);
-      return result.length >= maxResults; // Early termination
-    }
-
-    for (let i = start; i < numbersToUse.length; i++) {
-      current.push(numbersToUse[i]);
-      const shouldStop = backtrack(i + 1, current);
-      current.pop();
-      if (shouldStop) return true;
-    }
-    return false;
-  }
-
-  backtrack(0, []);
-  return result;
-}
 
 
-/**
- * Calculate confidence for conditional probability
- */
-function calculateConfidence(trigger: number[], historicalDraws: DrawRecord[]): number {
-  let occurrences = 0;
-  let totalOccurrences = 0;
 
-  for (let i = 1; i < historicalDraws.length; i++) {
-    const previousNumbers = [...historicalDraws[i - 1].winningNumbers, historicalDraws[i - 1].specialNumber];
 
-    // Check if trigger appears in previous draw
-    const triggerPresent = trigger.every(num => previousNumbers.includes(num));
 
-    if (triggerPresent) {
-      totalOccurrences++;
-      const currentNumbers = [...historicalDraws[i].winningNumbers, historicalDraws[i].specialNumber];
-      const hasFollowOn = trigger.some(num => currentNumbers.includes(num));
 
-      if (hasFollowOn) {
-        occurrences++;
-      }
-    }
-  }
 
-  return totalOccurrences > 0 ? occurrences / totalOccurrences : 0;
-}
-
-/**
- * Calculate pattern similarity
- */
-function calculatePatternSimilarity(
-  numbers1: number[],
-  numbers2: number[],
-  conditions1: { drawDay: number; month: number; season: number },
-  conditions2: { drawDay: number; month: number; season: number }
-): number {
-  // Number similarity (Jaccard index)
-  const intersection = numbers1.filter(num => numbers2.includes(num)).length;
-  const union = new Set([...numbers1, ...numbers2]).size;
-  const numberSimilarity = intersection / union;
-
-  // Condition similarity
-  let conditionSimilarity = 0;
-  if (conditions1.drawDay === conditions2.drawDay) conditionSimilarity += 0.3;
-  if (conditions1.month === conditions2.month) conditionSimilarity += 0.3;
-  if (conditions1.season === conditions2.season) conditionSimilarity += 0.4;
-
-  // Combined similarity
-  return (numberSimilarity * 0.6) + (conditionSimilarity * 0.4);
-}
-
-/**
- * Pre-calculate advanced follow-on analysis for reuse
- */
-export function calculateAdvancedFollowOnAnalysis(
-  historicalDraws: DrawRecord[]
-): AdvancedFollowOnAnalysis {
-  const config: AdvancedFollowOnConfig = {
-    maxChainLength: Math.min(3, Math.floor(historicalDraws.length / 100) + 1),
-    timeHorizons: historicalDraws.length > 100 ? [1, 3, 5, 10] : [1, 3],
-    patternThreshold: 0.7,
-    conditionalProbabilityThreshold: 0.6
-  };
-
-  // Performance optimization: Limit analysis to recent draws for large datasets
-  const analysisDraws = historicalDraws.length > 200
-    ? historicalDraws.slice(-200)
-    : historicalDraws;
-
-  // Analyze multi-step follow-on chains
-  const followOnChains = analyzeMultiStepChains(analysisDraws, config);
-
-  // Calculate conditional probabilities
-  const conditionalProbs = calculateConditionalProbabilities(analysisDraws, config);
-
-  // Cluster patterns by similar conditions
-  const patternClusters = clusterPatterns(analysisDraws, config);
-
-  // Generate weighted probabilities across time horizons
-  const weightedProbabilities = calculateWeightedProbabilities(
-    analysisDraws,
-    followOnChains,
-    conditionalProbs,
-    patternClusters
-  );
-
-  return {
-    followOnChains,
-    conditionalProbs,
-    patternClusters,
-    weightedProbabilities
-  };
-}
 
 /**
  * Calculate which two numbers in a 7-number combination should be split for partial bets

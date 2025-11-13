@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { LanguageCode, labels } from '@/lib/i18n';
+import { Combination, DrawResult, SavedGeneration } from '@/types/mark6';
+import { useEffect, useState } from 'react';
 import NumberSelection from './NumberSelection';
 import ResultsPanel from './ResultsPanel';
-import { AdUnit } from './AdUnit';
-import { Combination, DrawResult, SavedGeneration } from '@/types/mark6';
-import { labels, LanguageCode } from '@/lib/i18n';
 
 interface MarkSixGeneratorProps {
   language: LanguageCode;
