@@ -335,24 +335,24 @@ export default function NumberSelection({
               disabled={isLoading}
             />
             <div className="flex items-center gap-2 sm:gap-1">
-              <div className="flex items-center gap-1 bg-gray-50 rounded-md px-2 py-2 border border-gray-300 flex-1 sm:flex-none">
-                <input
-                  type="number"
-                  min={minCount}
-                  max={maxCount}
-                  value={suggestionCount}
-                  onChange={(e) => {
-                    const newValue = parseInt(e.target.value) || defaultCount;
-                    setSuggestionCount(Math.min(maxCount, Math.max(minCount, newValue)));
-                  }}
-                  className="w-12 px-1 bg-transparent text-sm text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded"
-                  placeholder={defaultCount.toString()}
-                  disabled={maxCount === 0}
-                />
-                <span className="text-xs text-gray-500 whitespace-nowrap">
-                  / {maxCount}
-                </span>
-              </div>
+              <Select
+                options={Array.from({ length: maxCount - minCount + 1 }, (_, i) => {
+                  const value = minCount + i;
+                  return {
+                    value: value.toString(),
+                    label: value.toString(),
+                  };
+                })}
+                value={suggestionCount.toString()}
+                onChange={(value) => {
+                  if (value) {
+                    setSuggestionCount(parseInt(value as string));
+                  }
+                }}
+                placeholder={defaultCount.toString()}
+                className="w-20"
+                disabled={maxCount === 0 || isLoading}
+              />
               <button
                 onClick={async () => {
                   if (selectedSuggestionType && suggestionCount > 0) {
