@@ -237,7 +237,7 @@ function generateCombinations(
   historicalDraws: DrawRecord[],
   generationAlgorithm: GenerationAlgorithm,
   lastDrawNumbers?: number[],
-  preCalculatedWeights?: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
+  preCalculatedWeights?: { followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
 ): number[][] {
   // For this test, we'll use a random lucky number from selected numbers
   const luckyNumber = selectedNumbers.length > 0
@@ -563,7 +563,7 @@ async function runTest(config: TestConfig): Promise<void> {
   console.log(`\nProcessing ${selectedTestDraws.length} randomly selected test draws with all combinations...`);
 
   // Pre-calculate model weights once for ensemble algorithm to reuse across all test draws
-  let preCalculatedWeights: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number } | undefined;
+  let preCalculatedWeights: { followOn: number; advancedFollowOn: number; frequency: number; bayesian: number } | undefined;
 
   if (config.algorithm === 'ensemble') {
     console.log(`[TEST] Pre-calculating model weights for ensemble algorithm...`);

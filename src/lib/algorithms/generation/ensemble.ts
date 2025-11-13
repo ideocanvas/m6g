@@ -1,5 +1,4 @@
 import { DrawRecord, EnsembleResult } from '../types';
-import { generateClassicCombinationsOptimized } from './classic-optimized';
 import { generateFollowOnCombinations } from './follow-on';
 import { generateAdvancedFollowOnCombinations } from './advanced-follow-on';
 import { getHistoricalFrequency } from '../analysis/frequency';
@@ -20,7 +19,7 @@ export function generateEnsembleCombinations(
   isDouble: boolean,
   historicalDraws: DrawRecord[],
   lastDrawNumbers?: number[],
-  preCalculatedWeights?: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
+  preCalculatedWeights?: { followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
 ): EnsembleResult[] {
   const startTime = Date.now();
   if (DEBUG) {
@@ -43,16 +42,6 @@ export function generateEnsembleCombinations(
   }
 
   // Generate combinations from each model
-  const classicStart = Date.now();
-  const classicResults = generateClassicCombinationsOptimized(
-    combinationCount * 2, // Generate more for selection
-    selectedNumbers,
-    luckyNumber,
-    isDouble,
-    historicalDraws
-  );
-  if (DEBUG) console.log(`[ENSEMBLE] Classic combinations: ${Date.now() - classicStart}ms`);
-
   const followOnStart = Date.now();
   const followOnResults = lastDrawNumbers ? generateFollowOnCombinations(
     combinationCount * 2,
@@ -92,7 +81,6 @@ export function generateEnsembleCombinations(
   // Combine all candidates with weighted selection
   const combineStart = Date.now();
   const allCandidates = [
-    ...classicResults.map(r => ({ combination: r.combination, model: 'classic' as const })),
     ...followOnResults.map(r => ({ combination: r.combination, model: 'followOn' as const })),
     ...bayesianResults.map(r => ({ combination: r.combination, model: 'bayesian' as const }))
   ];
@@ -117,7 +105,7 @@ export function generateEnsembleCombinations(
   // For double combinations, calculate split numbers based on least winning probability
   const finalResults = finalCombinations.map(({ combination, confidence }, index) => {
     let splitNumbers: number[] = [];
-    
+
     if (isDouble && combination.length === 7) {
       // Calculate which two numbers have the least chance to win
       splitNumbers = calculateSplitNumbers(combination, historicalDraws);
@@ -126,7 +114,12 @@ export function generateEnsembleCombinations(
     return {
       combination,
       sequenceNumber: index + 1,
-      modelWeights,
+      modelWeights: {
+        followOn: modelWeights.followOn,
+        advancedFollowOn: modelWeights.advancedFollowOn,
+        frequency: modelWeights.frequency,
+        bayesian: modelWeights.bayesian
+      },
       confidence,
       splitNumbers: splitNumbers.length > 0 ? splitNumbers : undefined
     };
@@ -138,13 +131,13 @@ export function generateEnsembleCombinations(
 /**
  * Calculate dynamic weights for each model based on recent performance
  */
-export function calculateModelWeights(historicalDraws: DrawRecord[]): { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number } {
+export function calculateModelWeights(historicalDraws: DrawRecord[]): { followOn: number; advancedFollowOn: number; frequency: number; bayesian: number } {
   const startTime = Date.now();
 
   if (historicalDraws.length < 20) {
     // Default weights for insufficient data
     if (DEBUG) console.log(`[MODEL_WEIGHTS] Using default weights (insufficient data): ${Date.now() - startTime}ms`);
-    return { classic: 0.25, followOn: 0.2, advancedFollowOn: 0.2, frequency: 0.15, bayesian: 0.2 };
+    return { followOn: 0.3, advancedFollowOn: 0.3, frequency: 0.2, bayesian: 0.2 };
   }
 
   // Use last 20% of data for performance evaluation
@@ -237,8 +230,9 @@ function generateModelPredictions(
 ): number[] {
   switch (modelType) {
     case 'classic':
-      const classicResults = generateClassicCombinationsOptimized(5, [], 0, false, trainingData);
-      return classicResults[0]?.combination || [];
+      // Use frequency-based numbers as fallback
+      const freqResults = getHistoricalFrequency(trainingData, 'hot');
+      return freqResults.slice(0, 6).map(r => r.number);
 
     case 'followOn':
       const lastNumbers = [...currentDraw.winningNumbers, currentDraw.specialNumber];
@@ -414,7 +408,7 @@ function createProbabilityPool(probabilities: Map<number, number>): number[] {
 function scoreCandidates(
   candidates: Array<{ combination: number[]; model: string }>,
   historicalDraws: DrawRecord[],
-  modelWeights: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
+  modelWeights: { followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
 ): Array<{ combination: number[]; score: number; confidence: number }> {
   return candidates.map(({ combination, model }) => {
     const modelWeight = modelWeights[model as keyof typeof modelWeights] || 0.25;

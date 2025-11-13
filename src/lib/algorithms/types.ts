@@ -46,8 +46,8 @@ export interface EnsembleResult {
   combination: number[];
   sequenceNumber: number;
   modelWeights: {
-    classic: number;
     followOn: number;
+    advancedFollowOn: number;
     frequency: number;
     bayesian: number;
   };
