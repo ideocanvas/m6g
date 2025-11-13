@@ -17,20 +17,19 @@
  */
 
 import {
-  getHistoricalFrequency,
-  getFollowOnNumbers,
-  getAdvancedFollowOnNumbers,
-  generateRandomNumbers,
+  generateAdvancedFollowOnCombinations,
   generateBalancedNumbers,
+  generateBayesianCombinations,
   generateClassicCombinations,
   generateClassicCombinationsOptimized,
-  generateFollowOnCombinations,
   generateEnsembleCombinations,
-  generateBayesianCombinations,
-  generateAdvancedFollowOnCombinations
+  generateFollowOnCombinations,
+  generateRandomNumbers,
+  getAdvancedFollowOnNumbers,
+  getFollowOnNumbers,
+  getHistoricalFrequency
 } from '../src/lib/algorithms';
 import { DrawRecord } from '../src/lib/algorithms/types';
-import type { AdvancedFollowOnAnalysis } from '../src/lib/algorithms/generation/advanced-follow-on';
 
 // Load real draw data from JSON file
 async function getRealDrawData(): Promise<DrawRecord[]> {
@@ -238,8 +237,7 @@ function generateCombinations(
   historicalDraws: DrawRecord[],
   generationAlgorithm: GenerationAlgorithm,
   lastDrawNumbers?: number[],
-  preCalculatedWeights?: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number },
-  preCalculatedAdvancedFollowOnAnalysis?: AdvancedFollowOnAnalysis
+  preCalculatedWeights?: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number }
 ): number[][] {
   // For this test, we'll use a random lucky number from selected numbers
   const luckyNumber = selectedNumbers.length > 0
@@ -287,8 +285,7 @@ function generateCombinations(
       selectedNumbers,
       luckyNumber,
       combinationType.isDouble,
-      historicalDraws,
-      preCalculatedAdvancedFollowOnAnalysis
+      historicalDraws
     );
     return results.map((r: { combination: number[] }) => r.combination);
   } else if (generationAlgorithm.name === 'Classic Optimized') {
@@ -567,7 +564,6 @@ async function runTest(config: TestConfig): Promise<void> {
 
   // Pre-calculate model weights once for ensemble algorithm to reuse across all test draws
   let preCalculatedWeights: { classic: number; followOn: number; advancedFollowOn: number; frequency: number; bayesian: number } | undefined;
-  let preCalculatedAdvancedFollowOnAnalysis: AdvancedFollowOnAnalysis | undefined;
 
   if (config.algorithm === 'ensemble') {
     console.log(`[TEST] Pre-calculating model weights for ensemble algorithm...`);
@@ -575,10 +571,7 @@ async function runTest(config: TestConfig): Promise<void> {
     preCalculatedWeights = calculateModelWeights(historicalDraws);
     console.log(`[TEST] Model weights calculated: ${JSON.stringify(preCalculatedWeights)}`);
   } else if (config.algorithm === 'advanced_follow_on') {
-    console.log(`[TEST] Pre-calculating advanced follow-on analysis...`);
-    const { calculateAdvancedFollowOnAnalysis } = await import('../src/lib/algorithms/generation/advanced-follow-on');
-    preCalculatedAdvancedFollowOnAnalysis = calculateAdvancedFollowOnAnalysis(historicalDraws);
-    console.log(`[TEST] Advanced follow-on analysis calculated`);
+    console.log(`[TEST] Advanced follow-on algorithm selected - no pre-calculation needed`);
   }
 
   for (let i = 0; i < selectedTestDraws.length; i++) {
@@ -623,8 +616,7 @@ async function runTest(config: TestConfig): Promise<void> {
           historicalDataUpToDraw,
           generationAlgorithm,
           lastDrawNumbers,
-          preCalculatedWeights,
-          preCalculatedAdvancedFollowOnAnalysis
+          preCalculatedWeights
         );
 
         // Calculate prize results for all combinations (now handles split numbers)
