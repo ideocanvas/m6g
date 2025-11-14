@@ -147,6 +147,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
 
     loadSavedGenerations();
     loadSharedData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Save generation to localStorage

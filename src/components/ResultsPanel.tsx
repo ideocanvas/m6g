@@ -318,7 +318,6 @@ export default function ResultsPanel({
             <button
               onClick={() => {
                 // Get the first combination to extract generation parameters
-                const firstCombination = combinations[0];
                 const shareData = {
                   generationId,
                   combinations: combinations.map(comb => ({
