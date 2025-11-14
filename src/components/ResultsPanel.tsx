@@ -317,16 +317,24 @@ export default function ResultsPanel({
             </button>
             <button
               onClick={() => {
+                // Get the first combination to extract generation parameters
+                const firstCombination = combinations[0];
                 const shareData = {
                   generationId,
                   combinations: combinations.map(comb => ({
                     combinationNumbers: comb.combinationNumbers || [],
                     isDouble: comb.isDouble,
-                    splitNumbers: comb.splitNumbers || []
+                    splitNumbers: comb.splitNumbers || [],
+                    selectedNumbers: comb.selectedNumbers || [], // Include selected numbers
+                    luckyNumber: comb.luckyNumber || 0,
+                    combinationCount: comb.combinationCount || 4,
+                    generationMethod: comb.generationMethod || 'follow_on'
                   }))
                 };
                 const base64Data = btoa(JSON.stringify(shareData));
-                const shareUrl = `${window.location.origin}?data=${base64Data}`;
+                // Include the current language path in the share URL
+                const currentPath = window.location.pathname;
+                const shareUrl = `${window.location.origin}${currentPath}?data=${base64Data}`;
                 navigator.clipboard.writeText(shareUrl);
                 alert(labels[language].share_link_copied_to_clipboard);
               }}

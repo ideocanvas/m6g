@@ -84,7 +84,69 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
       }
     };
 
+    const loadSharedData = () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedData = urlParams.get('data');
+        
+        if (sharedData) {
+          const decodedData = JSON.parse(atob(sharedData));
+          console.log("Loaded shared data:", decodedData);
+          
+          if (decodedData.combinations && Array.isArray(decodedData.combinations)) {
+            const generationId = decodedData.generationId || generateGenerationId();
+            const firstCombination = decodedData.combinations[0];
+            
+            // Extract generation parameters from the first combination
+            const selectedNumbers = firstCombination?.selectedNumbers || [];
+            const luckyNumber = firstCombination?.luckyNumber || 0;
+            const combinationCount = firstCombination?.combinationCount || 4;
+            const isDouble = firstCombination?.isDouble || false;
+            const generationMethod = firstCombination?.generationMethod || 'follow_on';
+            
+            setCombinations(decodedData.combinations);
+            setCurrentGenerationId(generationId);
+            setSelectedNumbers(selectedNumbers);
+            setLuckyNumber(luckyNumber || null);
+            setCombinationCount(combinationCount);
+            setIsDouble(isDouble);
+            setGenerationMethod(generationMethod as 'follow_on' | 'bayesian' | 'ensemble');
+            
+            // Save shared combinations to localStorage
+            const savedGeneration: SavedGeneration = {
+              generationId,
+              combinations: decodedData.combinations,
+              selectedNumbers,
+              luckyNumber,
+              combinationCount,
+              isDouble,
+              generationMethod: generationMethod as 'follow_on' | 'bayesian' | 'ensemble',
+              createdAt: new Date().toISOString(),
+            };
+            
+            const existingGenerations = savedGenerations.filter(gen => gen.generationId !== generationId);
+            const updatedGenerations = [...existingGenerations, savedGeneration];
+            setSavedGenerations(updatedGenerations);
+            
+            try {
+              localStorage.setItem('generations', JSON.stringify(updatedGenerations));
+              console.log("Saved shared generation to localStorage:", generationId);
+            } catch (error) {
+              console.error('Error saving shared generation to localStorage:', error);
+            }
+            
+            // Clear the URL parameter after loading to avoid reloading on refresh
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading shared data:', error);
+      }
+    };
+
     loadSavedGenerations();
+    loadSharedData();
   }, []);
 
   // Save generation to localStorage
