@@ -33,8 +33,15 @@
   "vars": {
     "NODE_ENV": "production",
     "HJC_API_ENDPOINT": "https://info.cld.hkjc.com/graphql/base/",
-    "NEXT_PUBLIC_YOUR_ADSENSE_ID": "ca-pub-2207805704631015"
-  }
+    "NEXT_PUBLIC_YOUR_ADSENSE_ID": "ca-pub-2207805704631015",
+    "NEXT_PUBLIC_BASE_URL": "https://m6g.workspace.workers.dev"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "SHARE_KV",
+      "id": "5725f170ca0540cf98eb9a3f3c8e5467"
+    }
+  ],
   /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/

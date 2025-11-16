@@ -20,6 +20,9 @@ export default function ResultsPanel({
 }: ResultsPanelProps) {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedGenerationId, setSelectedGenerationId] = useState<string>('');
+  const [showShareOptions, setShowShareOptions] = useState(false);
+  const [isCreatingShortUrl, setIsCreatingShortUrl] = useState(false);
+  const [shortUrl, setShortUrl] = useState<string>('');
   const isMobile = useMobile();
 
   const formatDateForInput = (date: Date) => {
@@ -47,6 +50,56 @@ export default function ResultsPanel({
       onDeleteGeneration(generationId);
       setSelectedGenerationId('');
     }
+  };
+
+  const createShortUrl = async (combinations: Combination[], generationId: string) => {
+    setIsCreatingShortUrl(true);
+    try {
+      const shareData = {
+        generationId,
+        combinations: combinations.map(comb => ({
+          combinationNumbers: comb.combinationNumbers || [],
+          isDouble: comb.isDouble,
+          splitNumbers: comb.splitNumbers || [],
+          selectedNumbers: comb.selectedNumbers || [],
+          luckyNumber: comb.luckyNumber || 0,
+          combinationCount: comb.combinationCount || 4,
+          generationMethod: comb.generationMethod || 'follow_on'
+        }))
+      };
+
+      const response = await fetch('/api/share', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: shareData,
+          baseUrl: window.location.origin
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create short URL');
+      }
+
+      const result = await response.json() as { shortUrl: string; shortId: string; expiresAt: string };
+      setShortUrl(result.shortUrl);
+      setShowShareOptions(true);
+      return result.shortUrl;
+    } catch (error) {
+      console.error('Error creating short URL:', error);
+      alert('Failed to create share link. Please try again.');
+      return null;
+    } finally {
+      setIsCreatingShortUrl(false);
+    }
+  };
+
+  const shareToWhatsApp = (text: string, url?: string) => {
+    const shareText = url ? `${text}\n\n${url}` : text;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const renderCombination = (combination: Combination, index: number) => {
@@ -296,51 +349,94 @@ export default function ResultsPanel({
 
         {/* Action Buttons */}
         {combinations.length > 0 && (
-          <div className="flex gap-2 pt-4">
-            <button
-              onClick={() => {
-                const text = combinations
-                  .map((comb, index) => {
-                    const baseText = `${index + 1}. ${comb.combinationNumbers?.join(', ') || 'Invalid data'}`;
-                    if (comb.isDouble && comb.splitNumbers && comb.splitNumbers.length > 0) {
-                      return `${baseText} (Split: ${comb.splitNumbers.join(', ')})`;
-                    }
-                    return baseText;
-                  })
-                  .join('\n');
-                navigator.clipboard.writeText(text);
-                alert(labels[language].combinations_copied);
-              }}
-              className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
-            >
-              {labels[language].copy_combinations}
-            </button>
-            <button
-              onClick={() => {
-                // Get the first combination to extract generation parameters
-                const shareData = {
-                  generationId,
-                  combinations: combinations.map(comb => ({
-                    combinationNumbers: comb.combinationNumbers || [],
-                    isDouble: comb.isDouble,
-                    splitNumbers: comb.splitNumbers || [],
-                    selectedNumbers: comb.selectedNumbers || [], // Include selected numbers
-                    luckyNumber: comb.luckyNumber || 0,
-                    combinationCount: comb.combinationCount || 4,
-                    generationMethod: comb.generationMethod || 'follow_on'
-                  }))
-                };
-                const base64Data = btoa(JSON.stringify(shareData));
-                // Include the current language path in the share URL
-                const currentPath = window.location.pathname;
-                const shareUrl = `${window.location.origin}${currentPath}?data=${base64Data}`;
-                navigator.clipboard.writeText(shareUrl);
-                alert(labels[language].share_link_copied_to_clipboard);
-              }}
-              className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors font-medium text-nowrap"
-            >
-              {labels[language].share}
-            </button>
+          <div className="space-y-3 pt-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const text = combinations
+                    .map((comb, index) => {
+                      const baseText = `${index + 1}. ${comb.combinationNumbers?.join(', ') || 'Invalid data'}`;
+                      if (comb.isDouble && comb.splitNumbers && comb.splitNumbers.length > 0) {
+                        return `${baseText} (Split: ${comb.splitNumbers.join(', ')})`;
+                      }
+                      return baseText;
+                    })
+                    .join('\n');
+                  navigator.clipboard.writeText(text);
+                  alert(labels[language].combinations_copied);
+                }}
+                className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+              >
+                {labels[language].copy_combinations}
+              </button>
+              <button
+                onClick={async () => {
+                  await createShortUrl(combinations, generationId);
+                }}
+                disabled={isCreatingShortUrl}
+                className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 disabled:bg-gray-400 transition-colors font-medium text-nowrap"
+              >
+                {isCreatingShortUrl ? 'Creating...' : labels[language].share}
+              </button>
+            </div>
+
+            {/* Advanced Share Options */}
+            {showShareOptions && shortUrl && (
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 relative">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="font-medium text-gray-800">Share Options</h4>
+                  <button
+                    onClick={() => setShowShareOptions(false)}
+                    className="text-gray-500 hover:text-gray-700 text-lg font-bold"
+                    aria-label="Close share options"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                {/* Short URL */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Short URL
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={shortUrl}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm bg-white"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(shortUrl);
+                        alert(labels[language].share_link_copied_to_clipboard);
+                      }}
+                      className="bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600 transition-colors"
+                    >
+                      {labels[language].copy_combinations}
+                    </button>
+                  </div>
+                </div>
+
+
+                {/* WhatsApp Share */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Share via WhatsApp
+                  </label>
+                  <button
+                    onClick={() => {
+                      const text = `Mark Six Combinations - ${combinations.length} sets\nGeneration ID: ${generationId}\n\nOpen in generator: ${shortUrl}`;
+                      shareToWhatsApp(text);
+                    }}
+                    className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2"
+                  >
+                    <span>📱</span>
+                    {labels[language].share}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

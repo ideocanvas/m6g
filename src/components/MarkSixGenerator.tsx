@@ -2,6 +2,19 @@
 
 import { LanguageCode, labels } from '@/lib/i18n';
 import { Combination, DrawResult, SavedGeneration } from '@/types/mark6';
+
+interface ShareData {
+  generationId: string;
+  combinations: Array<{
+    combinationNumbers: number[];
+    isDouble: boolean;
+    splitNumbers?: number[];
+    selectedNumbers: number[];
+    luckyNumber: number;
+    combinationCount: number;
+    generationMethod: string;
+  }>;
+}
 import { useEffect, useState } from 'react';
 import NumberSelection from './NumberSelection';
 import ResultsPanel from './ResultsPanel';
@@ -84,61 +97,77 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
       }
     };
 
-    const loadSharedData = () => {
+    const loadSharedData = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const sharedData = urlParams.get('data');
+        const shortId = urlParams.get('s');
         
-        if (sharedData) {
-          const decodedData = JSON.parse(atob(sharedData));
-          console.log("Loaded shared data:", decodedData);
-          
-          if (decodedData.combinations && Array.isArray(decodedData.combinations)) {
-            const generationId = decodedData.generationId || generateGenerationId();
-            const firstCombination = decodedData.combinations[0];
-            
-            // Extract generation parameters from the first combination
-            const selectedNumbers = firstCombination?.selectedNumbers || [];
-            const luckyNumber = firstCombination?.luckyNumber || 0;
-            const combinationCount = firstCombination?.combinationCount || 4;
-            const isDouble = firstCombination?.isDouble || false;
-            const generationMethod = firstCombination?.generationMethod || 'follow_on';
-            
-            setCombinations(decodedData.combinations);
-            setCurrentGenerationId(generationId);
-            setSelectedNumbers(selectedNumbers);
-            setLuckyNumber(luckyNumber || null);
-            setCombinationCount(combinationCount);
-            setIsDouble(isDouble);
-            setGenerationMethod(generationMethod as 'follow_on' | 'bayesian' | 'ensemble');
-            
-            // Save shared combinations to localStorage
-            const savedGeneration: SavedGeneration = {
-              generationId,
-              combinations: decodedData.combinations,
-              selectedNumbers,
-              luckyNumber,
-              combinationCount,
-              isDouble,
-              generationMethod: generationMethod as 'follow_on' | 'bayesian' | 'ensemble',
-              createdAt: new Date().toISOString(),
-            };
-            
-            const existingGenerations = savedGenerations.filter(gen => gen.generationId !== generationId);
-            const updatedGenerations = [...existingGenerations, savedGeneration];
-            setSavedGenerations(updatedGenerations);
-            
-            try {
-              localStorage.setItem('generations', JSON.stringify(updatedGenerations));
-              console.log("Saved shared generation to localStorage:", generationId);
-            } catch (error) {
-              console.error('Error saving shared generation to localStorage:', error);
+        let shareData = null;
+        
+        if (shortId) {
+          // Load from short URL
+          try {
+            const response = await fetch(`/api/share?id=${shortId}`);
+            if (response.ok) {
+              const result = await response.json() as { data: ShareData };
+              shareData = result.data;
             }
-            
-            // Clear the URL parameter after loading to avoid reloading on refresh
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, '', newUrl);
+          } catch (error) {
+            console.error('Error loading from short URL:', error);
           }
+        } else if (sharedData) {
+          // Load from base64 data
+          shareData = JSON.parse(atob(sharedData));
+        }
+        
+        if (shareData && shareData.combinations && Array.isArray(shareData.combinations)) {
+          console.log("Loaded shared data:", shareData);
+          
+          const generationId = shareData.generationId || generateGenerationId();
+          const firstCombination = shareData.combinations[0];
+          
+          // Extract generation parameters from the first combination
+          const selectedNumbers = firstCombination?.selectedNumbers || [];
+          const luckyNumber = firstCombination?.luckyNumber || 0;
+          const combinationCount = firstCombination?.combinationCount || 4;
+          const isDouble = firstCombination?.isDouble || false;
+          const generationMethod = firstCombination?.generationMethod || 'follow_on';
+          
+          setCombinations(shareData.combinations);
+          setCurrentGenerationId(generationId);
+          setSelectedNumbers(selectedNumbers);
+          setLuckyNumber(luckyNumber || null);
+          setCombinationCount(combinationCount);
+          setIsDouble(isDouble);
+          setGenerationMethod(generationMethod as 'follow_on' | 'bayesian' | 'ensemble');
+          
+          // Save shared combinations to localStorage
+          const savedGeneration: SavedGeneration = {
+            generationId,
+            combinations: shareData.combinations,
+            selectedNumbers,
+            luckyNumber,
+            combinationCount,
+            isDouble,
+            generationMethod: generationMethod as 'follow_on' | 'bayesian' | 'ensemble',
+            createdAt: new Date().toISOString(),
+          };
+          
+          const existingGenerations = savedGenerations.filter(gen => gen.generationId !== generationId);
+          const updatedGenerations = [...existingGenerations, savedGeneration];
+          setSavedGenerations(updatedGenerations);
+          
+          try {
+            localStorage.setItem('generations', JSON.stringify(updatedGenerations));
+            console.log("Saved shared generation to localStorage:", generationId);
+          } catch (error) {
+            console.error('Error saving shared generation to localStorage:', error);
+          }
+          
+          // Clear the URL parameter after loading to avoid reloading on refresh
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, '', newUrl);
         }
       } catch (error) {
         console.error('Error loading shared data:', error);

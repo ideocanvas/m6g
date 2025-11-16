@@ -17,9 +17,24 @@ export default async function Home({
     targetLanguage = 'en';
   }
 
-  // Preserve the data parameter when redirecting
+  // Preserve the data and s parameters when redirecting
   const dataParam = params.data;
-  const redirectUrl = dataParam ? `/${targetLanguage}?data=${dataParam}` : `/${targetLanguage}`;
+  const shortIdParam = params.s;
+  
+  let redirectUrl = `/${targetLanguage}`;
+  const urlParams = new URLSearchParams();
+  
+  if (dataParam) {
+    urlParams.set('data', dataParam as string);
+  }
+  if (shortIdParam) {
+    urlParams.set('s', shortIdParam as string);
+  }
+  
+  const queryString = urlParams.toString();
+  if (queryString) {
+    redirectUrl += `?${queryString}`;
+  }
   
   redirect(redirectUrl);
 }

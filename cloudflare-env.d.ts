@@ -5,6 +5,11 @@ declare namespace Cloudflare {
 	interface Env {
 		NEXTJS_ENV: string;
 		ASSETS: Fetcher;
+		NODE_ENV: string;
+		HJC_API_ENDPOINT: string;
+		NEXT_PUBLIC_YOUR_ADSENSE_ID: string;
+		NEXT_PUBLIC_BASE_URL: string;
+		SHARE_KV: KVNamespace;
 	}
 }
 interface CloudflareEnv extends Cloudflare.Env {}

@@ -8,7 +8,7 @@ source <(grep -v '^#' $DIR/../.env.local | grep -v '^$' | sed 's/^/export /')
 # This script calls the POST /api/draws endpoint to fetch latest results
 
 # Set the base URL (default: localhost:3000)
-BASE_URL="${BASE_URL:-http://localhost:3000}"
+BASE_URL="${NEXT_PUBLIC_BASE_URL:-http://localhost:3000}"
 
 # Get the master API key from environment variable
 MASTER_API_KEY="${MASTER_API_KEY}"
