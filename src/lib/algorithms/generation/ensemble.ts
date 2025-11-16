@@ -3,6 +3,7 @@ import { generateFollowOnCombinations } from './follow-on';
 import { generateAdvancedFollowOnCombinations } from './advanced-follow-on';
 import { getHistoricalFrequency } from '../analysis/frequency';
 import { getFollowOnNumbers } from '../analysis/follow-on';
+import { createDuplicateTracker, generateAlternativeCombination } from '../duplicate-prevention';
 
 // Debug flag to control logging
 const DEBUG = process.env.DEBUG === 'true' || false;
@@ -293,6 +294,7 @@ function generateBayesianCombinations(
 ): { combination: number[] }[] {
   const combinations: { combination: number[] }[] = [];
   const combinationLength = isDouble ? 7 : 6;
+  const duplicateTracker = createDuplicateTracker();
 
   // Calculate Bayesian probabilities
   const probabilities = calculateBayesianProbabilities(historicalDraws, frequencyNumbers, followOnNumbers);
@@ -338,8 +340,25 @@ function generateBayesianCombinations(
     const finalCombination = Array.from(combination);
     finalCombination.sort((a, b) => a - b);
 
-    if (finalCombination.length === combinationLength) {
-      combinations.push({ combination: finalCombination });
+    let combinationToAdd = finalCombination;
+
+    // Check for duplicates and generate alternative if needed
+    if (finalCombination.length === combinationLength && duplicateTracker.checkAndTrack(finalCombination)) {
+      const alternative = generateAlternativeCombination(
+        1,
+        selectedNumbers,
+        luckyNumber,
+        isDouble,
+        duplicateTracker.getUsedCombinations(),
+        3
+      );
+      if (alternative) {
+        combinationToAdd = alternative;
+      }
+    }
+
+    if (combinationToAdd.length === combinationLength && !duplicateTracker.checkAndTrack(combinationToAdd)) {
+      combinations.push({ combination: combinationToAdd });
     }
   }
 

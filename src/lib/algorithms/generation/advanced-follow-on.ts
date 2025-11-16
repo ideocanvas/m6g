@@ -12,6 +12,7 @@
 const DEBUG = process.env.DEBUG === "true" || false;
 
 import { DrawRecord, FollowOnCombinationResult } from "../types";
+import { createDuplicateTracker, generateAlternativeCombination } from "../duplicate-prevention";
 
 interface NumberProbability {
   number: number;
@@ -241,7 +242,7 @@ function generateProbabilityBasedCombinations(
   pairProbs: Map<string, number>
 ): FollowOnCombinationResult[] {
   const combinations: FollowOnCombinationResult[] = [];
-  const usedCombinations = new Set<string>();
+  const duplicateTracker = createDuplicateTracker();
   const combinationSize = isDouble ? 7 : 6;
 
   // Convert individual probabilities to weighted array
@@ -257,22 +258,32 @@ function generateProbabilityBasedCombinations(
     combinations.length < combinationCount &&
     weightedNumbers.length >= combinationSize
   ) {
-    const combination = selectWeightedCombinationFromSelected(
+    let combination = selectWeightedCombinationFromSelected(
       weightedNumbers,
       combinationSize,
       pairProbs
     );
 
-    const combinationKey = combination.sort((a, b) => a - b).join(",");
-
-    if (!usedCombinations.has(combinationKey)) {
-      usedCombinations.add(combinationKey);
-      combinations.push({
-        combination,
-        sequenceNumber: combinations.length + 1,
-        weights: individualProbs,
-      });
+    // Check for duplicates and generate alternative if needed
+    if (duplicateTracker.checkAndTrack(combination)) {
+      const alternative = generateAlternativeCombination(
+        1,
+        selectedNumbers,
+        luckyNumber,
+        isDouble,
+        duplicateTracker.getUsedCombinations(),
+        3
+      );
+      if (alternative) {
+        combination = alternative;
+      }
     }
+
+    combinations.push({
+      combination,
+      sequenceNumber: combinations.length + 1,
+      weights: individualProbs,
+    });
   }
 
   return combinations;
@@ -337,7 +348,7 @@ function generateRandomCombinations(
   historicalDraws: DrawRecord[]
 ): FollowOnCombinationResult[] {
   const combinations: FollowOnCombinationResult[] = [];
-  const usedCombinations = new Set<string>();
+  const duplicateTracker = createDuplicateTracker();
 
   // Simple weighted selection based on historical frequency
   const frequencyMap = new Map<number, number>();
@@ -355,7 +366,7 @@ function generateRandomCombinations(
   }
 
   while (combinations.length < combinationCount) {
-    const combination: number[] = [];
+    let combination: number[] = [];
     const availableNumbers = [...weightedNumbers];
 
     // Select numbers using weighted random selection
@@ -379,13 +390,24 @@ function generateRandomCombinations(
       }
     }
 
-    const combinationKey = combination.sort((a, b) => a - b).join(",");
+    combination = combination.sort((a, b) => a - b);
 
-    if (
-      !usedCombinations.has(combinationKey) &&
-      combination.length === combinationSize
-    ) {
-      usedCombinations.add(combinationKey);
+    // Check for duplicates and generate alternative if needed
+    if (combination.length === combinationSize && duplicateTracker.checkAndTrack(combination)) {
+      const alternative = generateAlternativeCombination(
+        1,
+        [],
+        0, // No lucky number for random generation
+        combinationSize === 7,
+        duplicateTracker.getUsedCombinations(),
+        3
+      );
+      if (alternative) {
+        combination = alternative;
+      }
+    }
+
+    if (combination.length === combinationSize) {
       combinations.push({
         combination,
         sequenceNumber: combinations.length + 1,

@@ -1,4 +1,5 @@
 import { DrawRecord, ClassicResult } from '../types';
+import { createDuplicateTracker, generateAlternativeCombination } from '../duplicate-prevention';
 
 interface NumberProbability {
   number: number;
@@ -102,9 +103,10 @@ function generateNumbersImpl(
   isDouble: boolean
 ): number[][] {
   const generatedCombinations: number[][] = [];
+  const duplicateTracker = createDuplicateTracker();
 
   for (let i = 0; i < combinationCount; i++) {
-    const combination = [luckyNumber];
+    let combination = [luckyNumber];
 
     if (selectedNumbers.length > 0) {
       while (combination.length < (isDouble ? 5 : 6)) {
@@ -143,6 +145,21 @@ function generateNumbersImpl(
       }
       combination2.sort((a, b) => a - b);
       combination.push(...combination2);
+    }
+
+    // Check for duplicates and generate alternative if needed
+    if (duplicateTracker.checkAndTrack(combination)) {
+      const alternative = generateAlternativeCombination(
+        1,
+        selectedNumbers,
+        luckyNumber,
+        isDouble,
+        duplicateTracker.getUsedCombinations(),
+        3
+      );
+      if (alternative) {
+        combination = alternative;
+      }
     }
 
     generatedCombinations.push(combination);

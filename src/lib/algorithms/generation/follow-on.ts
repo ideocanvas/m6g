@@ -1,4 +1,5 @@
 import { DrawRecord, FollowOnCombinationResult } from '../types';
+import { createDuplicateTracker, generateAlternativeCombination } from '../duplicate-prevention';
 
 interface NumberProbability {
   number: number;
@@ -58,6 +59,7 @@ export function generateFollowOnCombinations(
 
   const generatedCombinations: number[][] = [];
   const combinationLength = isDouble ? 7 : 6;
+  const duplicateTracker = createDuplicateTracker();
 
   for (let i = 0; i < combinationCount; i++) {
     const combination = new Set<number>();
@@ -97,8 +99,25 @@ export function generateFollowOnCombinations(
     const finalCombination = Array.from(combination);
     finalCombination.sort((a, b) => a - b);
 
-    if (finalCombination.length === combinationLength) {
-      generatedCombinations.push(finalCombination);
+    let combinationToAdd = finalCombination;
+
+    // Check for duplicates and generate alternative if needed
+    if (finalCombination.length === combinationLength && duplicateTracker.checkAndTrack(finalCombination)) {
+      const alternative = generateAlternativeCombination(
+        1,
+        selectedNumbers,
+        luckyNumber,
+        isDouble,
+        duplicateTracker.getUsedCombinations(),
+        3
+      );
+      if (alternative) {
+        combinationToAdd = alternative;
+      }
+    }
+
+    if (combinationToAdd.length === combinationLength) {
+      generatedCombinations.push(combinationToAdd);
     }
   }
 

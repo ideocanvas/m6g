@@ -1,4 +1,5 @@
 import { DrawRecord, BayesianResult } from '../types';
+import { createDuplicateTracker, generateAlternativeCombination } from '../duplicate-prevention';
 
 interface NumberProbability {
   number: number;
@@ -27,6 +28,7 @@ export function generateBayesianCombinations(
 
   const combinations: BayesianResult[] = [];
   const combinationLength = isDouble ? 7 : 6;
+  const duplicateTracker = createDuplicateTracker();
 
   for (let i = 0; i < combinationCount; i++) {
     const combination = new Set<number>();
@@ -75,18 +77,38 @@ export function generateBayesianCombinations(
     const finalCombination = Array.from(combination);
     finalCombination.sort((a, b) => a - b);
 
-    if (finalCombination.length === combinationLength) {
+    let combinationToAdd = finalCombination;
+    let probabilityToUse = combinationProbability;
+
+    // Check for duplicates and generate alternative if needed
+    if (finalCombination.length === combinationLength && duplicateTracker.checkAndTrack(finalCombination)) {
+      const alternative = generateAlternativeCombination(
+        1,
+        selectedNumbers,
+        luckyNumber,
+        isDouble,
+        duplicateTracker.getUsedCombinations(),
+        3
+      );
+      if (alternative) {
+        combinationToAdd = alternative;
+        // Reset probability for alternative combination
+        probabilityToUse = 0.5; // Default probability for alternatives
+      }
+    }
+
+    if (combinationToAdd.length === combinationLength) {
       let splitNumbers: number[] = [];
       
-      if (isDouble && finalCombination.length === 7) {
+      if (isDouble && combinationToAdd.length === 7) {
         // Calculate which two numbers have the least chance to win
-        splitNumbers = calculateSplitNumbers(finalCombination, historicalDraws);
+        splitNumbers = calculateSplitNumbers(combinationToAdd, historicalDraws);
       }
 
       combinations.push({
-        combination: finalCombination,
+        combination: combinationToAdd,
         sequenceNumber: i + 1,
-        probability: combinationProbability,
+        probability: probabilityToUse,
         splitNumbers: splitNumbers.length > 0 ? splitNumbers : undefined
       });
     }

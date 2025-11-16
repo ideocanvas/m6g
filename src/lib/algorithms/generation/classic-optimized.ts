@@ -13,6 +13,7 @@
 const DEBUG = process.env.DEBUG === 'true' || false;
 
 import { DrawRecord, ClassicResult } from '../types';
+import { createDuplicateTracker, generateAlternativeCombination } from '../duplicate-prevention';
 
 interface NumberProbability {
   number: number;
@@ -203,6 +204,7 @@ function generateNumbersOptimized(
 ): number[][] {
   const generatedCombinations: number[][] = [];
   const combinationLength = isDouble ? 7 : 6;
+  const duplicateTracker = createDuplicateTracker();
 
   // Performance optimization: Pre-shuffle selected numbers for better distribution
   const shuffledSelectedNumbers = selectedNumbers.length > 0
@@ -242,6 +244,23 @@ function generateNumbersOptimized(
 
     // Convert to sorted array
     const sortedCombination = Array.from(combination).sort((a, b) => a - b);
+
+    // Check for duplicates and generate alternative if needed
+    if (duplicateTracker.checkAndTrack(sortedCombination)) {
+      const alternative = generateAlternativeCombination(
+        1,
+        selectedNumbers,
+        luckyNumber,
+        isDouble,
+        duplicateTracker.getUsedCombinations(),
+        3
+      );
+      if (alternative) {
+        generatedCombinations.push(alternative);
+        continue;
+      }
+    }
+
     generatedCombinations.push(sortedCombination);
   }
 

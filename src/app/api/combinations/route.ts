@@ -7,6 +7,7 @@ import {
   generateClassicCombinationsOptimized,
   generateFollowOnCombinations,
 } from "@/lib/algorithms";
+import { getCombinationKey } from "@/lib/algorithms/duplicate-prevention";
 
 interface GenerateCombinationRequest {
   generationId: string;
@@ -170,10 +171,27 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // API-level duplicate validation as final safety net
+    const uniqueCombinations = [];
+    const seenCombinations = new Set<string>();
+    
+    for (const result of algorithmResults) {
+      const combinationKey = getCombinationKey(result.combination);
+      if (!seenCombinations.has(combinationKey)) {
+        seenCombinations.add(combinationKey);
+        uniqueCombinations.push(result);
+      }
+    }
+
+    // If duplicates were found, log a warning
+    if (uniqueCombinations.length < algorithmResults.length) {
+      console.warn(`[DUPLICATE_PREVENTION] Removed ${algorithmResults.length - uniqueCombinations.length} duplicate combinations in API validation`);
+    }
+
     // Save combinations to database
     const savedCombinations = [];
-    for (let i = 0; i < algorithmResults.length; i++) {
-      const result = algorithmResults[i];
+    for (let i = 0; i < uniqueCombinations.length; i++) {
+      const result = uniqueCombinations[i];
 
       const combinationData = {
         generationId: generationId,
