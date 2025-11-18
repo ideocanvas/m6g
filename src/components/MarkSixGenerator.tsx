@@ -190,28 +190,9 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
           setIsDouble(isDouble);
           setGenerationMethod(generationMethod as 'follow_on' | 'bayesian' | 'ensemble');
 
-          // Save shared combinations to localStorage
-          const savedGeneration: SavedGeneration = {
-            generationId,
-            combinations: shareData.combinations,
-            selectedNumbers,
-            luckyNumber,
-            combinationCount,
-            isDouble,
-            generationMethod: generationMethod as 'follow_on' | 'bayesian' | 'ensemble',
-            createdAt: new Date().toISOString(),
-          };
-
-          const existingGenerations = savedGenerations.filter(gen => gen.generationId !== generationId);
-          const updatedGenerations = [...existingGenerations, savedGeneration];
-          setSavedGenerations(updatedGenerations);
-
-          const success = safeLocalStorage.setItem('generations', JSON.stringify(updatedGenerations));
-          if (success) {
-            console.log("Saved shared generation to localStorage:", generationId);
-          } else {
-            console.error('Error saving shared generation to localStorage');
-          }
+          // Save shared combinations to localStorage using the new function
+          saveGenerationWithId(shareData.combinations, generationId);
+          console.log("Saved shared generation to localStorage:", generationId);
 
           // Clear the URL parameter after loading to avoid reloading on refresh
           const newUrl = window.location.pathname;
@@ -227,12 +208,12 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save generation to localStorage
-  const saveGeneration = (combinations: Combination[]) => {
-    if (!currentGenerationId || combinations.length === 0) return;
+  // Save generation to localStorage with explicit generationId to avoid React state timing issues
+  const saveGenerationWithId = (combinations: Combination[], generationId: string) => {
+    if (!generationId || combinations.length === 0) return;
 
     const savedGeneration: SavedGeneration = {
-      generationId: currentGenerationId,
+      generationId,
       combinations,
       selectedNumbers,
       luckyNumber: luckyNumber!,
@@ -243,7 +224,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
     };
 
     // Check if this generation already exists and update it, otherwise add new
-    const existingIndex = savedGenerations.findIndex(gen => gen.generationId === currentGenerationId);
+    const existingIndex = savedGenerations.findIndex(gen => gen.generationId === generationId);
     let updatedGenerations: SavedGeneration[];
     
     if (existingIndex >= 0) {
@@ -262,6 +243,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
       addNotification('Failed to save generation to local storage', 'error');
     }
   };
+
 
   // Load a saved generation
   const loadGeneration = (generation: SavedGeneration) => {
@@ -296,8 +278,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
 
     setIsGenerating(true);
     const generationId = generateGenerationId();
-    setCurrentGenerationId(generationId);
-
+    
     try {
       const response = await fetch('/api/combinations', {
         method: 'POST',
@@ -320,8 +301,10 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
 
       const data = await response.json() as { combinations: Combination[] };
       setCombinations(data.combinations);
-      console.log("saveGeneration()...", data);
-      saveGeneration(data.combinations);
+      setCurrentGenerationId(generationId);
+      
+      // Save generation with the explicit generationId to avoid React state timing issues
+      saveGenerationWithId(data.combinations, generationId);
     } catch (error) {
       console.error('Error generating combinations:', error);
       addNotification('Failed to generate combinations. Please try again.', 'error');
