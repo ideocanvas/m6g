@@ -60,11 +60,11 @@ export function generateGannSquare(): (number | null)[][] {
 
 
 /**
- * Suggests lottery numbers based on the Gann Square method discussed in the U Lifestyle article.
+ * Suggests lottery numbers based on the Gann Square method with distance-based ordering.
  * The logic is as follows:
- * 1. Identify rows or columns containing two or more numbers from the last draw. These are "hot zones."
- * 2. Suggest ALL numbers within these "hot" rows and columns.
- * 3. If a number from the last draw is not in a "hot zone," suggest it as a potential repeater.
+ * 1. First return the last draw numbers (7 numbers)
+ * 2. Then return numbers most close to the last draw numbers in the Gann Square
+ * 3. Use frequency only as tie-breaker when distances are equal
  *
  * @param historicalDraws An array of historical draw records, with the last element being the most recent.
  * @returns An array of suggested numbers with the reason for their suggestion.
@@ -75,79 +75,101 @@ export function suggestNumbersByGannSquare(historicalDraws: DrawRecord[]): Sugge
   }
 
   const gannSquare = generateGannSquare();
-  const size = gannSquare.length;
   const recentDraw = historicalDraws[historicalDraws.length - 1];
-  const lastDrawNumbers = new Set([...recentDraw.winningNumbers, recentDraw.specialNumber]);
+  const lastDrawNumbers = [...recentDraw.winningNumbers, recentDraw.specialNumber];
+
+  // Calculate number frequencies from recent draws (last 50 draws)
+  const recentDraws = historicalDraws.slice(-50);
+  const numberFrequencies = new Map<number, number>();
+
+  for (let i = 1; i <= 49; i++) {
+    numberFrequencies.set(i, 0);
+  }
+
+  for (const draw of recentDraws) {
+    const allNumbers = [...draw.winningNumbers, draw.specialNumber];
+    for (const num of allNumbers) {
+      numberFrequencies.set(num, (numberFrequencies.get(num) || 0) + 1);
+    }
+  }
+
+  // Step 1: Add last draw numbers first (7 numbers)
   const suggestions = new Map<number, SuggestedNumber>();
 
-  // Step 1: Count hits from the last draw in each row and column and map number coordinates.
-  const rowCounts = Array(size).fill(0);
-  const colCounts = Array(size).fill(0);
-  const numberCoords = new Map<number, { y: number; x: number }>();
+  for (const num of lastDrawNumbers) {
+    if (!suggestions.has(num)) {
+      suggestions.set(num, {
+        number: num,
+        reason: 'Last draw number',
+      });
+    }
+  }
 
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
+  // Step 2: Find numbers close to last draw numbers in Gann Square
+  const closeNumbers = new Map<number, { distance: number, frequency: number }>();
+
+  // Map number coordinates
+  const numberCoords = new Map<number, { y: number; x: number }>();
+  for (let y = 0; y < gannSquare.length; y++) {
+    for (let x = 0; x < gannSquare[y].length; x++) {
       const num = gannSquare[y][x];
       if (num) {
-        if (lastDrawNumbers.has(num)) {
-          rowCounts[y]++;
-          colCounts[x]++;
-          numberCoords.set(num, { y, x });
-        }
+        numberCoords.set(num, { y, x });
       }
     }
   }
 
-  // Step 2: Identify "hot zones" and add all numbers from them.
-  for (let y = 0; y < size; y++) {
-    if (rowCounts[y] >= 2) {
-      // This is a "hot row"
-      const numsInRow = Array.from(lastDrawNumbers).filter(n => numberCoords.get(n)?.y === y);
-      for (let x = 0; x < size; x++) {
-        const numInHotRow = gannSquare[y][x];
-        if (numInHotRow && !suggestions.has(numInHotRow)) {
-          suggestions.set(numInHotRow, {
-            number: numInHotRow,
-            reason: `In 'hot' row containing ${numsInRow.join(', ')}`,
-          });
-        }
-      }
+  // Calculate distances from last draw numbers
+  for (let i = 1; i <= 49; i++) {
+    if (suggestions.has(i)) continue; // Skip numbers already added
+
+    const coords = numberCoords.get(i);
+    if (!coords) continue;
+
+    let minDistance = Infinity;
+
+    for (const lastNum of lastDrawNumbers) {
+      const lastCoords = numberCoords.get(lastNum);
+      if (!lastCoords) continue;
+
+      // Calculate Manhattan distance in the grid
+      const distance = Math.abs(coords.x - lastCoords.x) + Math.abs(coords.y - lastCoords.y);
+      minDistance = Math.min(minDistance, distance);
+    }
+
+    if (minDistance < Infinity) {
+      closeNumbers.set(i, {
+        distance: minDistance,
+        frequency: numberFrequencies.get(i) || 0
+      });
     }
   }
 
-  for (let x = 0; x < size; x++) {
-    if (colCounts[x] >= 2) {
-      // This is a "hot column"
-       const numsInCol = Array.from(lastDrawNumbers).filter(n => numberCoords.get(n)?.x === x);
-      for (let y = 0; y < size; y++) {
-        const numInHotCol = gannSquare[y][x];
-        if (numInHotCol && !suggestions.has(numInHotCol)) {
-          suggestions.set(numInHotCol, {
-            number: numInHotCol,
-            reason: `In 'hot' column containing ${numsInCol.join(', ')}`,
-          });
-        }
+  // Sort close numbers by distance only (closest first), frequency only used as tie-breaker
+  const sortedCloseNumbers = Array.from(closeNumbers.entries())
+    .sort((a, b) => {
+      const [, dataA] = a;
+      const [, dataB] = b;
+
+      // First by distance (closest first) - frequency does NOT override distance
+      if (dataA.distance !== dataB.distance) {
+        return dataA.distance - dataB.distance;
       }
+
+      // Only use frequency as tie-breaker when distances are exactly equal
+      return dataB.frequency - dataA.frequency;
+    });
+
+  // Add close numbers to suggestions
+  for (const [num, data] of sortedCloseNumbers) {
+    if (!suggestions.has(num)) {
+      suggestions.set(num, {
+        number: num,
+        reason: `Close to last draw numbers (distance: ${data.distance})`,
+      });
     }
   }
 
-  // Step 3: Identify and add "isolated" numbers from the last draw.
-  for (const num of lastDrawNumbers) {
-    const coords = numberCoords.get(num);
-    if (coords) {
-      const { y, x } = coords;
-      // An isolated number is one where its row and column both have less than 2 hits.
-      if (rowCounts[y] < 2 && colCounts[x] < 2) {
-        if (!suggestions.has(num)) {
-          suggestions.set(num, {
-            number: num,
-            reason: 'Isolated number from last draw (potential repeater)',
-          });
-        }
-      }
-    }
-  }
-
-  // Return a sorted array of the suggested numbers.
-  return Array.from(suggestions.values()).sort((a, b) => a.number - b.number);
+  // Return all suggestions (last draw numbers first, then close numbers by distance)
+  return Array.from(suggestions.values());
 }

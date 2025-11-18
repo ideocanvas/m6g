@@ -78,6 +78,8 @@ export interface LanguageLabels {
   qimen_ai_button: string;
   saved_generations: string;
   confirm_delete_generation: string;
+  copy_draw_results: string;
+  draw_results_copied: string;
   disclaimer_title: string;
   disclaimer_content: string;
   gambling_warning: string;
@@ -169,6 +171,8 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     qimen_ai_button: 'AI Prompt (QiMen)',
     saved_generations: 'Saved Generations',
     confirm_delete_generation: 'Are you sure you want to delete this generation?',
+    copy_draw_results: 'Copy Draw Results',
+    draw_results_copied: 'Draw results copied to clipboard!',
     disclaimer_title: 'Important Disclaimer',
     disclaimer_content: 'This application is for entertainment purposes only and does not guarantee winning lottery numbers. All generated combinations are based on statistical analysis and should not be considered as financial advice.',
     gambling_warning: 'Gambling involves risk. Please gamble responsibly.',
@@ -256,6 +260,8 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     qimen_ai_button: 'AI 提示 (奇門)',
     saved_generations: '已保存的生成記錄',
     confirm_delete_generation: '確定要刪除此生成記錄嗎？',
+    copy_draw_results: '複製開獎結果',
+    draw_results_copied: '開獎結果已複製到剪貼簿！',
     disclaimer_title: '重要免責聲明',
     disclaimer_content: '本應用程式僅供娛樂用途，不保證中獎號碼。所有生成的組合均基於統計分析，不應被視為財務建議。',
     gambling_warning: '賭博涉及風險。請負責任地賭博。',

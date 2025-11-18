@@ -2,6 +2,7 @@
 
 import { LanguageCode, labels } from '@/lib/i18n';
 import { Combination, DrawResult, SavedGeneration } from '@/types/mark6';
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface ShareData {
   generationId: string;
@@ -34,6 +35,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   const [isDouble, setIsDouble] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [savedGenerations, setSavedGenerations] = useState<SavedGeneration[]>([]);
+  const { addNotification } = useNotification();
 
   // Generate a unique generation ID
   const generateGenerationId = () => {
@@ -236,7 +238,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
 
   const generateCombinations = async () => {
     if (!luckyNumber) {
-      alert(labels[language].please_select_lucky_number);
+      addNotification(labels[language].please_select_lucky_number, 'warning');
       return;
     }
 
@@ -270,7 +272,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
       saveGeneration(data.combinations);
     } catch (error) {
       console.error('Error generating combinations:', error);
-      alert('Failed to generate combinations. Please try again.');
+      addNotification('Failed to generate combinations. Please try again.', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -307,7 +309,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
       });
     } catch (error) {
       console.error('Error getting suggestions:', error);
-      alert(labels[language].suggestion_failed);
+      addNotification(labels[language].suggestion_failed, 'error');
     }
   };
 
@@ -358,11 +360,11 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
       if (data.data && data.data.length > 0) {
         setDrawResults(data.data[0]);
       } else {
-        alert('No draw results found for the selected date');
+        addNotification('No draw results found for the selected date', 'warning');
       }
     } catch (error) {
       console.error('Error fetching draw results:', error);
-      alert('Failed to fetch draw results. Please try again.');
+      addNotification('Failed to fetch draw results. Please try again.', 'error');
     }
   };
 

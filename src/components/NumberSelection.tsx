@@ -7,6 +7,7 @@ import NumberBall from './NumberBall';
 import Select from './Select';
 import { labels, replacePlaceholders } from '@/lib/i18n';
 import { generateGannSquare } from '@/lib/algorithms';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export default function NumberSelection({
   selectedNumbers,
@@ -32,6 +33,7 @@ export default function NumberSelection({
   const [isGeneratingAIPrompt, setIsGeneratingAIPrompt] = useState(false);
   const [isGeneratingQiMenPrompt, setIsGeneratingQiMenPrompt] = useState(false);
   const [selectedSuggestionType, setSelectedSuggestionType] = useState<string>('follow_on');
+  const { addNotification } = useNotification();
 
   // Calculate suggestion limits based on combination option
   // Use the same calculation as requiredCount: 6 + Math.ceil(combinationCount / 2)
@@ -107,12 +109,12 @@ export default function NumberSelection({
   // Generate AI prompt
   const generateAIPrompt = async (promptType: 'standard' | 'qimen') => {
     if (!luckyNumber) {
-      alert(labels[language].please_select_lucky_number);
+      addNotification(labels[language].please_select_lucky_number, 'warning');
       return;
     }
 
     if (selectedNumbers.length < requiredCount) {
-      alert(replacePlaceholders(labels[language].please_select_numbers, { count: requiredCount }));
+      addNotification(replacePlaceholders(labels[language].please_select_numbers, { count: requiredCount }), 'warning');
       return;
     }
 
@@ -147,10 +149,10 @@ export default function NumberSelection({
 
       // Copy prompt to clipboard
       await navigator.clipboard.writeText(data.prompt);
-      alert(labels[language].ai_prompt_copied || 'AI prompt copied to clipboard!');
+      addNotification(labels[language].ai_prompt_copied || 'AI prompt copied to clipboard!', 'success', 3000);
     } catch (error) {
       console.error('Error generating AI prompt:', error);
-      alert(labels[language].ai_prompt_failed || 'Failed to generate AI prompt. Please try again.');
+      addNotification(labels[language].ai_prompt_failed || 'Failed to generate AI prompt. Please try again.', 'error');
     } finally {
       if (promptType === 'standard') {
         setIsGeneratingAIPrompt(false);

@@ -1,4 +1,5 @@
 import { GoogleAdSense } from '@/components/GoogleAdSense';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import { LanguageCode } from '@/lib/i18n';
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -42,7 +43,9 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        {children}
+        <NotificationProvider>
+          {children}
+        </NotificationProvider>
       </body>
     </html>
   );

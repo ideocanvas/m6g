@@ -7,6 +7,7 @@ import DatePicker from './DatePicker';
 import Select from './Select';
 import { labels } from '@/lib/i18n';
 import { useMobile } from '@/hooks/useMobile';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export default function ResultsPanel({
   combinations,
@@ -24,6 +25,7 @@ export default function ResultsPanel({
   const [isCreatingShortUrl, setIsCreatingShortUrl] = useState(false);
   const [shortUrl, setShortUrl] = useState<string>('');
   const isMobile = useMobile();
+  const { addNotification } = useNotification();
 
   const formatDateForInput = (date: Date) => {
     return date.toISOString().split('T')[0];
@@ -31,7 +33,7 @@ export default function ResultsPanel({
 
   const handleCheckDrawResults = () => {
     if (!selectedDate) {
-      alert(labels[language].please_select_date);
+      addNotification(labels[language].please_select_date, 'warning');
       return;
     }
     onCheckDrawResults(selectedDate);
@@ -89,7 +91,7 @@ export default function ResultsPanel({
       return result.shortUrl;
     } catch (error) {
       console.error('Error creating short URL:', error);
-      alert('Failed to create share link. Please try again.');
+      addNotification('Failed to create share link. Please try again.', 'error');
       return null;
     } finally {
       setIsCreatingShortUrl(false);
@@ -180,7 +182,7 @@ export default function ResultsPanel({
   // Get all unique numbers from combinations for matching
   const getAllUniqueNumbersFromCombinations = () => {
     const allNumbers = new Set<number>();
-    
+
     combinations.forEach(combination => {
       if (combination.combinationNumbers && Array.isArray(combination.combinationNumbers)) {
         combination.combinationNumbers.forEach(number => {
@@ -193,7 +195,7 @@ export default function ResultsPanel({
         });
       }
     });
-    
+
     return Array.from(allNumbers);
   };
 
@@ -206,11 +208,25 @@ export default function ResultsPanel({
     // Use smaller balls for draw results on mobile
     const drawResultBallSize = isMobile ? 'sm' : 'lg';
 
+    const copyDrawResults = () => {
+      const drawResultText = `Draw Results - ${drawResults.dateText}\nWinning Numbers: ${drawResults.winningNumbers?.join(', ')}\nSpecial Number: ${drawResults.specialNumber}`;
+      navigator.clipboard.writeText(drawResultText);
+      addNotification(labels[language].draw_results_copied, 'success', 3000);
+    };
+
     return (
       <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">
-          {labels[language].draw_results} - {drawResults.dateText}
-        </h3>
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-lg font-semibold text-gray-800">
+            {labels[language].draw_results} - {drawResults.dateText}
+          </h3>
+          <button
+            onClick={copyDrawResults}
+            className="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition-colors font-medium text-sm"
+          >
+            {labels[language].copy_draw_results}
+          </button>
+        </div>
         <div className="flex items-center gap-2 mb-4">
           {drawResults.winningNumbers?.map((number: number, index: number) => {
             // Only highlight winning numbers that appear in any combination
@@ -363,7 +379,7 @@ export default function ResultsPanel({
                     })
                     .join('\n');
                   navigator.clipboard.writeText(text);
-                  alert(labels[language].combinations_copied);
+                  addNotification(labels[language].combinations_copied, 'success', 3000);
                 }}
                 className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
               >
@@ -393,7 +409,7 @@ export default function ResultsPanel({
                     ×
                   </button>
                 </div>
-                
+
                 {/* Short URL */}
                 <div className="mb-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -409,7 +425,7 @@ export default function ResultsPanel({
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(shortUrl);
-                        alert(labels[language].share_link_copied_to_clipboard);
+                        addNotification(labels[language].share_link_copied_to_clipboard, 'success', 3000);
                       }}
                       className="bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600 transition-colors"
                     >
