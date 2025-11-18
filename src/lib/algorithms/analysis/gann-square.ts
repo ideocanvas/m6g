@@ -60,11 +60,10 @@ export function generateGannSquare(): (number | null)[][] {
 
 
 /**
- * Suggests lottery numbers based on the Gann Square method with distance-based ordering.
+ * Suggests lottery numbers based on the Gann Square method with random ordering for close numbers.
  * The logic is as follows:
  * 1. First return the last draw numbers (7 numbers)
- * 2. Then return numbers most close to the last draw numbers in the Gann Square
- * 3. Use frequency only as tie-breaker when distances are equal
+ * 2. Then return numbers close to the last draw numbers in random order
  *
  * @param historicalDraws An array of historical draw records, with the last element being the most recent.
  * @returns An array of suggested numbers with the reason for their suggestion.
@@ -77,21 +76,6 @@ export function suggestNumbersByGannSquare(historicalDraws: DrawRecord[]): Sugge
   const gannSquare = generateGannSquare();
   const recentDraw = historicalDraws[historicalDraws.length - 1];
   const lastDrawNumbers = [...recentDraw.winningNumbers, recentDraw.specialNumber];
-
-  // Calculate number frequencies from recent draws (last 50 draws)
-  const recentDraws = historicalDraws.slice(-50);
-  const numberFrequencies = new Map<number, number>();
-
-  for (let i = 1; i <= 49; i++) {
-    numberFrequencies.set(i, 0);
-  }
-
-  for (const draw of recentDraws) {
-    const allNumbers = [...draw.winningNumbers, draw.specialNumber];
-    for (const num of allNumbers) {
-      numberFrequencies.set(num, (numberFrequencies.get(num) || 0) + 1);
-    }
-  }
 
   // Step 1: Add last draw numbers first (7 numbers)
   const suggestions = new Map<number, SuggestedNumber>();
@@ -106,7 +90,7 @@ export function suggestNumbersByGannSquare(historicalDraws: DrawRecord[]): Sugge
   }
 
   // Step 2: Find numbers close to last draw numbers in Gann Square
-  const closeNumbers = new Map<number, { distance: number, frequency: number }>();
+  const closeNumbers: number[] = [];
 
   // Map number coordinates
   const numberCoords = new Map<number, { y: number; x: number }>();
@@ -119,7 +103,7 @@ export function suggestNumbersByGannSquare(historicalDraws: DrawRecord[]): Sugge
     }
   }
 
-  // Calculate distances from last draw numbers
+  // Find all numbers that are close to last draw numbers
   for (let i = 1; i <= 49; i++) {
     if (suggestions.has(i)) continue; // Skip numbers already added
 
@@ -138,38 +122,41 @@ export function suggestNumbersByGannSquare(historicalDraws: DrawRecord[]): Sugge
     }
 
     if (minDistance < Infinity) {
-      closeNumbers.set(i, {
-        distance: minDistance,
-        frequency: numberFrequencies.get(i) || 0
-      });
+      closeNumbers.push(i);
     }
   }
 
-  // Sort close numbers by distance only (closest first), frequency only used as tie-breaker
-  const sortedCloseNumbers = Array.from(closeNumbers.entries())
-    .sort((a, b) => {
-      const [, dataA] = a;
-      const [, dataB] = b;
+  // Shuffle close numbers randomly
+  const shuffledCloseNumbers = [...closeNumbers].sort(() => Math.random() - 0.5);
 
-      // First by distance (closest first) - frequency does NOT override distance
-      if (dataA.distance !== dataB.distance) {
-        return dataA.distance - dataB.distance;
-      }
-
-      // Only use frequency as tie-breaker when distances are exactly equal
-      return dataB.frequency - dataA.frequency;
-    });
-
-  // Add close numbers to suggestions
-  for (const [num, data] of sortedCloseNumbers) {
+  // Add close numbers to suggestions in random order
+  for (const num of shuffledCloseNumbers) {
     if (!suggestions.has(num)) {
       suggestions.set(num, {
         number: num,
-        reason: `Close to last draw numbers (distance: ${data.distance})`,
+        reason: 'Close to last draw numbers',
       });
     }
   }
 
-  // Return all suggestions (last draw numbers first, then close numbers by distance)
-  return Array.from(suggestions.values());
+  // Return all suggestions (last draw numbers first, then close numbers in random order)
+  const allSuggestions = Array.from(suggestions.values());
+
+  // Sort to ensure last draw numbers come first, then close numbers in random order
+  return allSuggestions.sort((a, b) => {
+    const isALastDraw = lastDrawNumbers.includes(a.number);
+    const isBLastDraw = lastDrawNumbers.includes(b.number);
+
+    // Last draw numbers always come first
+    if (isALastDraw && !isBLastDraw) return -1;
+    if (!isALastDraw && isBLastDraw) return 1;
+
+    // If both are last draw numbers, keep original order
+    if (isALastDraw && isBLastDraw) {
+      return lastDrawNumbers.indexOf(a.number) - lastDrawNumbers.indexOf(b.number);
+    }
+
+    // If both are close numbers, maintain the random order
+    return 0;
+  });
 }

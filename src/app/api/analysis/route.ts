@@ -119,12 +119,16 @@ export async function GET(request: NextRequest) {
 
     let result;
 
-    // Only cache data-dependent analysis types (follow_on, advanced_follow_on, hot, cold, gann_square)
-    if (['follow_on', 'advanced_follow_on', 'hot', 'cold', 'gann_square'].includes(analysisType)) {
+    // Only cache data-dependent analysis types (follow_on, advanced_follow_on, hot, cold)
+    if (['follow_on', 'advanced_follow_on', 'hot', 'cold'].includes(analysisType)) {
       result = await generateCachedAnalysisResult(analysisType, daysOfHistory, currentDate);
     } else if (['random', 'balanced'].includes(analysisType)) {
       // Don't cache random and balanced types as they generate different results each time
       result = await generateNonCachedAnalysisResult(analysisType);
+    } else if (analysisType === 'gann_square') {
+      // Don't cache Gann Square as it should generate fresh results each time
+      const gannHistoricalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
+      result = suggestNumbersByGannSquare(gannHistoricalDraws);
     } else {
       return NextResponse.json(
         { error: 'Invalid analysis type. Use: follow_on, advanced_follow_on, hot, cold, gann_square, random, or balanced' },
