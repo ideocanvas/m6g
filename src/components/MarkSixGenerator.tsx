@@ -43,6 +43,36 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
     return `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
   };
 
+  // Utility function to safely handle localStorage operations
+  const safeLocalStorage = {
+    getItem: (key: string): string | null => {
+      try {
+        return localStorage.getItem(key);
+      } catch (error) {
+        console.error(`Error reading from localStorage key "${key}":`, error);
+        return null;
+      }
+    },
+    setItem: (key: string, value: string): boolean => {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (error) {
+        console.error(`Error writing to localStorage key "${key}":`, error);
+        return false;
+      }
+    },
+    removeItem: (key: string): boolean => {
+      try {
+        localStorage.removeItem(key);
+        return true;
+      } catch (error) {
+        console.error(`Error removing from localStorage key "${key}":`, error);
+        return false;
+      }
+    }
+  };
+
   // Toggle number selection
   const toggleNumberSelection = (number: number) => {
     setSelectedNumbers(prev => {
@@ -71,12 +101,13 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   useEffect(() => {
     const loadSavedGenerations = () => {
       try {
-        const saved = localStorage.getItem('generations');
+        const saved = safeLocalStorage.getItem('generations');
         if (saved) {
           const generationsData = JSON.parse(saved);
-          console.log("generationsData", generationsData)
-          // Convert from old format (object with generationId keys) to new format (array)
+          
+          // Validate and convert data format
           if (typeof generationsData === 'object' && !Array.isArray(generationsData)) {
+            // Convert from old format (object with generationId keys) to new format (array)
             const generationsArray = Object.entries(generationsData).map(([generationId, combinations]) => ({
               generationId,
               combinations: combinations as Combination[],
@@ -89,13 +120,28 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
             }));
             setSavedGenerations(generationsArray);
             // Also update localStorage to new format
-            localStorage.setItem('generations', JSON.stringify(generationsArray));
+            safeLocalStorage.setItem('generations', JSON.stringify(generationsArray));
+          } else if (Array.isArray(generationsData)) {
+            // Validate array format and filter out invalid entries
+            const validGenerations = generationsData.filter((gen) =>
+              gen &&
+              typeof gen === 'object' &&
+              'generationId' in gen &&
+              'combinations' in gen &&
+              Array.isArray(gen.combinations)
+            );
+            setSavedGenerations(validGenerations as SavedGeneration[]);
           } else {
-            setSavedGenerations(generationsData);
+            // Invalid data format, clear it
+            safeLocalStorage.removeItem('generations');
+            setSavedGenerations([]);
           }
         }
       } catch (error) {
         console.error('Error loading saved generations:', error);
+        // Clear corrupted data
+        safeLocalStorage.removeItem('generations');
+        setSavedGenerations([]);
       }
     };
 
@@ -160,11 +206,11 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
           const updatedGenerations = [...existingGenerations, savedGeneration];
           setSavedGenerations(updatedGenerations);
 
-          try {
-            localStorage.setItem('generations', JSON.stringify(updatedGenerations));
+          const success = safeLocalStorage.setItem('generations', JSON.stringify(updatedGenerations));
+          if (success) {
             console.log("Saved shared generation to localStorage:", generationId);
-          } catch (error) {
-            console.error('Error saving shared generation to localStorage:', error);
+          } else {
+            console.error('Error saving shared generation to localStorage');
           }
 
           // Clear the URL parameter after loading to avoid reloading on refresh
@@ -196,14 +242,24 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
       createdAt: new Date().toISOString(),
     };
 
-    const updatedGenerations = [...savedGenerations, savedGeneration];
+    // Check if this generation already exists and update it, otherwise add new
+    const existingIndex = savedGenerations.findIndex(gen => gen.generationId === currentGenerationId);
+    let updatedGenerations: SavedGeneration[];
+    
+    if (existingIndex >= 0) {
+      // Update existing generation
+      updatedGenerations = [...savedGenerations];
+      updatedGenerations[existingIndex] = savedGeneration;
+    } else {
+      // Add new generation
+      updatedGenerations = [...savedGenerations, savedGeneration];
+    }
+
     setSavedGenerations(updatedGenerations);
 
-    try {
-      console.log("saveGeneration", updatedGenerations)
-      localStorage.setItem('generations', JSON.stringify(updatedGenerations));
-    } catch (error) {
-      console.error('Error saving generation:', error);
+    const success = safeLocalStorage.setItem('generations', JSON.stringify(updatedGenerations));
+    if (!success) {
+      addNotification('Failed to save generation to local storage', 'error');
     }
   };
 
@@ -223,11 +279,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
     const updatedGenerations = savedGenerations.filter(gen => gen.generationId !== generationId);
     setSavedGenerations(updatedGenerations);
 
-    try {
-      localStorage.setItem('generations', JSON.stringify(updatedGenerations));
-    } catch (error) {
-      console.error('Error deleting generation:', error);
-    }
+    safeLocalStorage.setItem('generations', JSON.stringify(updatedGenerations));
 
     // If we're currently viewing the deleted generation, clear the results
     if (currentGenerationId === generationId) {
