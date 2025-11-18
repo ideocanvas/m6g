@@ -73,7 +73,7 @@ export interface NumberSelectionProps {
   onGenerationMethodChange: (method: 'follow_on' | 'bayesian' | 'ensemble') => void;
   onClearSelection: () => void;
   onSelectAll: () => void;
-  onSuggestNumbers: (type: 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced', count: number) => void;
+  onSuggestNumbers: (type: 'hot' | 'cold' | 'follow_on' | 'gann_square' | 'random' | 'balanced', count: number) => void;
   onGenerate: () => void;
   requiredCount: number;
   isGenerating?: boolean;

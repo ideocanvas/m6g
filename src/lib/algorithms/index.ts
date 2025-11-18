@@ -7,6 +7,7 @@ export * from './analysis/advanced-follow-on';
 export * from './analysis/frequency';
 export * from './analysis/random';
 export * from './analysis/balanced';
+export * from './analysis/gann-square';
 
 // Generation algorithms (combination generation)
 export * from './generation/classic';

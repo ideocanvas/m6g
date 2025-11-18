@@ -34,6 +34,7 @@ export interface LanguageLabels {
   suggest_least_frequent: string;
   suggest_random: string;
   suggest_balanced: string;
+  suggest_gann_square: string;
   suggest_numbers: string;
   getting_suggestions: string;
   suggestions_loaded: string;
@@ -124,6 +125,7 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     suggest_least_frequent: 'Suggest: Least Frequent',
     suggest_random: 'Suggest: Random',
     suggest_balanced: 'Suggest: Balanced',
+    suggest_gann_square: 'Suggest: Gann Square',
     suggest_numbers: 'Suggest Numbers',
     getting_suggestions: 'Getting suggestions...',
     suggestions_loaded: 'Suggestions loaded!',
@@ -210,6 +212,7 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     suggest_least_frequent: '建議：最冷門',
     suggest_random: '建議：隨機',
     suggest_balanced: '建議：平衡',
+    suggest_gann_square: '建議：江恩方陣',
     suggest_numbers: '建議號碼',
     getting_suggestions: '正在獲取建議...',
     suggestions_loaded: '建議已加載！',

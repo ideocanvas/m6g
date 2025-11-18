@@ -2,7 +2,8 @@ import {
   generateBalancedNumbers,
   generateRandomNumbers,
   getAdvancedFollowOnNumbers,
-  getHistoricalFrequency
+  getHistoricalFrequency,
+  suggestNumbersByGannSquare
 } from '@/lib/algorithms';
 import { prisma } from '@/lib/prisma';
 import { unstable_cache } from 'next/cache';
@@ -60,6 +61,10 @@ const generateCachedAnalysisResult = unstable_cache(
         const coldHistoricalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
         result = getHistoricalFrequency(coldHistoricalDraws, 'cold');
         break;
+      case 'gann_square':
+        const gannHistoricalDraws = await getHistoricalDraws(daysOfHistory, currentDate);
+        result = suggestNumbersByGannSquare(gannHistoricalDraws);
+        break;
       default:
         throw new Error('Invalid analysis type');
     }
@@ -114,15 +119,15 @@ export async function GET(request: NextRequest) {
 
     let result;
 
-    // Only cache data-dependent analysis types (follow_on, advanced_follow_on, hot, cold)
-    if (['follow_on', 'advanced_follow_on', 'hot', 'cold'].includes(analysisType)) {
+    // Only cache data-dependent analysis types (follow_on, advanced_follow_on, hot, cold, gann_square)
+    if (['follow_on', 'advanced_follow_on', 'hot', 'cold', 'gann_square'].includes(analysisType)) {
       result = await generateCachedAnalysisResult(analysisType, daysOfHistory, currentDate);
     } else if (['random', 'balanced'].includes(analysisType)) {
       // Don't cache random and balanced types as they generate different results each time
       result = await generateNonCachedAnalysisResult(analysisType);
     } else {
       return NextResponse.json(
-        { error: 'Invalid analysis type. Use: follow_on, advanced_follow_on, hot, cold, random, or balanced' },
+        { error: 'Invalid analysis type. Use: follow_on, advanced_follow_on, hot, cold, gann_square, random, or balanced' },
         { status: 400 }
       );
     }

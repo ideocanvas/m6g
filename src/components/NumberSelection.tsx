@@ -86,6 +86,7 @@ export default function NumberSelection({
     { value: 'follow_on', label: labels[language].suggest_hot_follow_on },
     { value: 'hot', label: labels[language].suggest_most_frequent },
     { value: 'cold', label: labels[language].suggest_least_frequent },
+    { value: 'gann_square', label: labels[language].suggest_gann_square },
     { value: 'random', label: labels[language].suggest_random },
     { value: 'balanced', label: labels[language].suggest_balanced },
   ];
@@ -360,7 +361,7 @@ export default function NumberSelection({
                     setLastSuggestionType(selectedSuggestionType);
                     try {
                       await onSuggestNumbers(
-                        selectedSuggestionType as 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced',
+                        selectedSuggestionType as 'hot' | 'cold' | 'follow_on' | 'gann_square' | 'random' | 'balanced',
                         suggestionCount
                       );
                     } finally {

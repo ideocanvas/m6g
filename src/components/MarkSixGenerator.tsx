@@ -102,9 +102,9 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
         const urlParams = new URLSearchParams(window.location.search);
         const sharedData = urlParams.get('data');
         const shortId = urlParams.get('s');
-        
+
         let shareData = null;
-        
+
         if (shortId) {
           // Load from short URL
           try {
@@ -120,20 +120,20 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
           // Load from base64 data
           shareData = JSON.parse(atob(sharedData));
         }
-        
+
         if (shareData && shareData.combinations && Array.isArray(shareData.combinations)) {
           console.log("Loaded shared data:", shareData);
-          
+
           const generationId = shareData.generationId || generateGenerationId();
           const firstCombination = shareData.combinations[0];
-          
+
           // Extract generation parameters from the first combination
           const selectedNumbers = firstCombination?.selectedNumbers || [];
           const luckyNumber = firstCombination?.luckyNumber || 0;
           const combinationCount = firstCombination?.combinationCount || 4;
           const isDouble = firstCombination?.isDouble || false;
           const generationMethod = firstCombination?.generationMethod || 'follow_on';
-          
+
           setCombinations(shareData.combinations);
           setCurrentGenerationId(generationId);
           setSelectedNumbers(selectedNumbers);
@@ -141,7 +141,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
           setCombinationCount(combinationCount);
           setIsDouble(isDouble);
           setGenerationMethod(generationMethod as 'follow_on' | 'bayesian' | 'ensemble');
-          
+
           // Save shared combinations to localStorage
           const savedGeneration: SavedGeneration = {
             generationId,
@@ -153,18 +153,18 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
             generationMethod: generationMethod as 'follow_on' | 'bayesian' | 'ensemble',
             createdAt: new Date().toISOString(),
           };
-          
+
           const existingGenerations = savedGenerations.filter(gen => gen.generationId !== generationId);
           const updatedGenerations = [...existingGenerations, savedGeneration];
           setSavedGenerations(updatedGenerations);
-          
+
           try {
             localStorage.setItem('generations', JSON.stringify(updatedGenerations));
             console.log("Saved shared generation to localStorage:", generationId);
           } catch (error) {
             console.error('Error saving shared generation to localStorage:', error);
           }
-          
+
           // Clear the URL parameter after loading to avoid reloading on refresh
           const newUrl = window.location.pathname;
           window.history.replaceState({}, '', newUrl);
@@ -277,7 +277,7 @@ export default function MarkSixGenerator({ language }: MarkSixGeneratorProps) {
   };
 
   // Get number suggestions
-  const suggestNumbers = async (type: 'hot' | 'cold' | 'follow_on' | 'random' | 'balanced', count: number) => {
+  const suggestNumbers = async (type: 'hot' | 'cold' | 'follow_on' | 'gann_square' | 'random' | 'balanced', count: number) => {
     try {
       let suggestedNumbers: number[] = [];
 
