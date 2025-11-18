@@ -13,7 +13,6 @@ dotenv.config({ path: '.env.local' });
 // Create Prisma client based on DATABASE_URL
 function createPrismaClient(useAccelerate?: boolean) {
   const databaseUrl = process.env.DATABASE_URL;
-  console.log('databaseUrl', databaseUrl);
   // Auto-detect if accelerate should be used based on DATABASE_URL
   if (useAccelerate === undefined) {
     useAccelerate = databaseUrl?.startsWith('prisma://') || databaseUrl?.startsWith('prisma+postgres://');

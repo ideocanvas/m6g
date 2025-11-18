@@ -3,7 +3,6 @@ import { PrismaClient } from "@prisma/client";
 // Create Prisma client based on DATABASE_URL
 function createPrismaClient(useAccelerate?: boolean) {
   const databaseUrl = process.env.DATABASE_URL;
-  console.log('databaseUrl', databaseUrl);
   // Auto-detect if accelerate should be used based on DATABASE_URL
   if (useAccelerate === undefined) {
     useAccelerate = databaseUrl?.startsWith('prisma://') || databaseUrl?.startsWith('prisma+postgres://');
@@ -26,7 +25,6 @@ function createPrismaClient(useAccelerate?: boolean) {
 
 // Get DATABASE_URL from environment
 const databaseUrl = process.env.DATABASE_URL
-console.log("databaseUrl", databaseUrl)
 // Auto-detect if accelerate should be used based on DATABASE_URL
 const useAccelerate = databaseUrl?.startsWith('prisma://') || databaseUrl?.startsWith('prisma+postgres://')
 
