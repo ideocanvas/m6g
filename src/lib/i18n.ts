@@ -80,6 +80,9 @@ export interface LanguageLabels {
   confirm_delete_generation: string;
   copy_draw_results: string;
   draw_results_copied: string;
+  no_recent_draw_results: string;
+  failed_fetch_recent_draw: string;
+  checking: string;
   disclaimer_title: string;
   disclaimer_content: string;
   gambling_warning: string;
@@ -173,6 +176,9 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     confirm_delete_generation: 'Are you sure you want to delete this generation?',
     copy_draw_results: 'Copy Draw Results',
     draw_results_copied: 'Draw results copied to clipboard!',
+    no_recent_draw_results: 'No recent draw results found',
+    failed_fetch_recent_draw: 'Failed to fetch recent draw results',
+    checking: 'Checking...',
     disclaimer_title: 'Important Disclaimer',
     disclaimer_content: 'This application is for entertainment purposes only and does not guarantee winning lottery numbers. All generated combinations are based on statistical analysis and should not be considered as financial advice.',
     gambling_warning: 'Gambling involves risk. Please gamble responsibly.',
@@ -262,6 +268,9 @@ export const labels: Record<LanguageCode, LanguageLabels> = {
     confirm_delete_generation: '確定要刪除此生成記錄嗎？',
     copy_draw_results: '複製開獎結果',
     draw_results_copied: '開獎結果已複製到剪貼簿！',
+    no_recent_draw_results: '未找到最近的開獎結果',
+    failed_fetch_recent_draw: '獲取最近開獎結果失敗',
+    checking: '檢查中...',
     disclaimer_title: '重要免責聲明',
     disclaimer_content: '本應用程式僅供娛樂用途，不保證中獎號碼。所有生成的組合均基於統計分析，不應被視為財務建議。',
     gambling_warning: '賭博涉及風險。請負責任地賭博。',

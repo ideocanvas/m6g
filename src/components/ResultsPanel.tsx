@@ -24,6 +24,7 @@ export default function ResultsPanel({
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [isCreatingShortUrl, setIsCreatingShortUrl] = useState(false);
   const [shortUrl, setShortUrl] = useState<string>('');
+  const [isCheckingDraw, setIsCheckingDraw] = useState(false);
   const isMobile = useMobile();
   const { addNotification } = useNotification();
 
@@ -32,35 +33,41 @@ export default function ResultsPanel({
   };
 
   const handleCheckDrawResults = async () => {
-    if (!selectedDate) {
-      // Auto-fetch the most recent draw
-      try {
-        const response = await fetch('/api/draws?limit=1');
-        if (!response.ok) {
-          throw new Error('Failed to fetch recent draw');
-        }
+    setIsCheckingDraw(true);
 
-        const data = await response.json() as { data: DrawResult[] };
-        if (data.data && data.data.length > 0) {
-          const mostRecentDraw = data.data[0];
-          // Use the onCheckDrawResults callback to update the parent component
-          // Also update the selected date to show the actual date
-          const dateParts = mostRecentDraw.dateText.split('/');
-          if (dateParts.length === 3) {
-            const [day, month, year] = dateParts;
-            const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-            setSelectedDate(formattedDate);
-            onCheckDrawResults(formattedDate);
+    try {
+      if (!selectedDate) {
+        // Auto-fetch the most recent draw
+        try {
+          const response = await fetch('/api/draws?limit=1');
+          if (!response.ok) {
+            throw new Error('Failed to fetch recent draw');
           }
-        } else {
-          addNotification('No recent draw results found', 'warning');
+
+          const data = await response.json() as { data: DrawResult[] };
+          if (data.data && data.data.length > 0) {
+            const mostRecentDraw = data.data[0];
+            // Use the onCheckDrawResults callback to update the parent component
+            // Also update the selected date to show the actual date
+            const dateParts = mostRecentDraw.dateText.split('/');
+            if (dateParts.length === 3) {
+              const [day, month, year] = dateParts;
+              const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+              setSelectedDate(formattedDate);
+              onCheckDrawResults(formattedDate);
+            }
+          } else {
+            addNotification(labels[language].no_recent_draw_results, 'warning');
+          }
+        } catch (error) {
+          console.error('Error fetching recent draw:', error);
+          addNotification(labels[language].failed_fetch_recent_draw, 'error');
         }
-      } catch (error) {
-        console.error('Error fetching recent draw:', error);
-        addNotification('Failed to fetch recent draw results', 'error');
+      } else {
+        onCheckDrawResults(selectedDate);
       }
-    } else {
-      onCheckDrawResults(selectedDate);
+    } finally {
+      setIsCheckingDraw(false);
     }
   };
 
@@ -378,9 +385,20 @@ export default function ResultsPanel({
             />
             <button
               onClick={handleCheckDrawResults}
-              className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition-colors font-medium text-nowrap"
+              disabled={isCheckingDraw}
+              className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 disabled:bg-indigo-300 transition-colors font-medium text-nowrap flex items-center gap-2"
             >
-              {labels[language].check}
+              {isCheckingDraw ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {labels[language].checking}
+                </>
+              ) : (
+                labels[language].check
+              )}
             </button>
           </div>
         </div>
