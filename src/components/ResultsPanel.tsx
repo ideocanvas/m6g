@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ResultsPanelProps, Combination } from '@/types/mark6';
+import { ResultsPanelProps, Combination, DrawResult } from '@/types/mark6';
 import NumberBall from './NumberBall';
 import DatePicker from './DatePicker';
 import Select from './Select';
@@ -31,12 +31,37 @@ export default function ResultsPanel({
     return date.toISOString().split('T')[0];
   };
 
-  const handleCheckDrawResults = () => {
+  const handleCheckDrawResults = async () => {
     if (!selectedDate) {
-      addNotification(labels[language].please_select_date, 'warning');
-      return;
+      // Auto-fetch the most recent draw
+      try {
+        const response = await fetch('/api/draws?limit=1');
+        if (!response.ok) {
+          throw new Error('Failed to fetch recent draw');
+        }
+
+        const data = await response.json() as { data: DrawResult[] };
+        if (data.data && data.data.length > 0) {
+          const mostRecentDraw = data.data[0];
+          // Use the onCheckDrawResults callback to update the parent component
+          // Also update the selected date to show the actual date
+          const dateParts = mostRecentDraw.dateText.split('/');
+          if (dateParts.length === 3) {
+            const [day, month, year] = dateParts;
+            const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            setSelectedDate(formattedDate);
+            onCheckDrawResults(formattedDate);
+          }
+        } else {
+          addNotification('No recent draw results found', 'warning');
+        }
+      } catch (error) {
+        console.error('Error fetching recent draw:', error);
+        addNotification('Failed to fetch recent draw results', 'error');
+      }
+    } else {
+      onCheckDrawResults(selectedDate);
     }
-    onCheckDrawResults(selectedDate);
   };
 
   const handleLoadGeneration = (generationId: string) => {
