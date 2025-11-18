@@ -27,7 +27,8 @@ import {
   generateRandomNumbers,
   getAdvancedFollowOnNumbers,
   getFollowOnNumbers,
-  getHistoricalFrequency
+  getHistoricalFrequency,
+  suggestNumbersByGannSquare
 } from '../src/lib/algorithms';
 import { DrawRecord } from '../src/lib/algorithms/types';
 
@@ -78,6 +79,8 @@ interface TestConfig {
   testYear: number;
   yearsOfHistory: number;
   algorithm: 'classic' | 'classic_optimized' | 'follow_on' | 'ensemble' | 'bayesian' | 'advanced_follow_on';
+  suggestionMode: 'all' | 'single';
+  selectedSuggestion?: string;
 }
 
 interface CombinationType {
@@ -88,7 +91,7 @@ interface CombinationType {
 
 interface SuggestionAlgorithm {
   name: string;
-  type: 'hot_follow_on' | 'advanced_follow_on' | 'hot' | 'cold' | 'random' | 'balanced';
+  type: 'hot_follow_on' | 'advanced_follow_on' | 'hot' | 'cold' | 'random' | 'balanced' | 'gann_square';
 }
 
 interface GenerationAlgorithm {
@@ -174,7 +177,8 @@ const SUGGESTION_ALGORITHMS: SuggestionAlgorithm[] = [
   { name: 'Hot Numbers', type: 'hot' },
   { name: 'Cold Numbers', type: 'cold' },
   { name: 'Random', type: 'random' },
-  { name: 'Balanced', type: 'balanced' }
+  { name: 'Balanced', type: 'balanced' },
+  { name: 'Gann Square', type: 'gann_square' }
 ];
 
 // Generation algorithms mapping
@@ -222,6 +226,10 @@ function getNumbersByAlgorithm(
     case 'balanced':
       const balancedResults = generateBalancedNumbers();
       return balancedResults.slice(0, 15).map(r => r.number);
+
+    case 'gann_square':
+      const gannResults = suggestNumbersByGannSquare(historicalDraws);
+      return gannResults.slice(0, 15).map(r => r.number);
 
     default:
       throw new Error(`Unknown algorithm type: ${algorithm.type}`);
@@ -600,8 +608,13 @@ async function runTest(config: TestConfig): Promise<void> {
       throw new Error(`Unknown algorithm: ${config.algorithm}`);
     }
 
+    // Determine which suggestion algorithms to test
+    const suggestionAlgorithmsToTest = config.suggestionMode === 'all'
+      ? SUGGESTION_ALGORITHMS
+      : SUGGESTION_ALGORITHMS.filter(algo => algo.type === config.selectedSuggestion);
+
     for (const combinationType of COMBINATION_TYPES) {
-      for (const suggestionAlgorithm of SUGGESTION_ALGORITHMS) {
+      for (const suggestionAlgorithm of suggestionAlgorithmsToTest) {
         // Get selected numbers based on suggestion algorithm
         const selectedNumbers = getNumbersByAlgorithm(
           suggestionAlgorithm,
@@ -645,8 +658,13 @@ async function runTest(config: TestConfig): Promise<void> {
 
   const summaryStats: SummaryStats[] = [];
 
+  // Determine which suggestion algorithms to include in summary
+  const suggestionAlgorithmsForSummary = config.suggestionMode === 'all'
+    ? SUGGESTION_ALGORITHMS
+    : SUGGESTION_ALGORITHMS.filter(algo => algo.type === config.selectedSuggestion);
+
   for (const combinationType of COMBINATION_TYPES) {
-    for (const suggestionAlgorithm of SUGGESTION_ALGORITHMS) {
+    for (const suggestionAlgorithm of suggestionAlgorithmsForSummary) {
       const relevantResults = allResults.filter((r: TestResult) =>
         r.combinationType === combinationType.name &&
         r.suggestionAlgorithm === suggestionAlgorithm.name
@@ -773,82 +791,186 @@ async function prompt(question: string): Promise<string> {
 }
 
 /**
- * Main function with interactive prompts
+ * Main function with command line parameter support
  */
 async function main() {
   console.log('=== Mark Six Algorithm Testing Program ===\n');
 
-  // Prompt for test year
   let testYear: number;
-  while (true) {
-    const yearInput = await prompt('Enter test year (2000-2100): ');
-    testYear = parseInt(yearInput);
+  let algorithm: 'classic' | 'classic_optimized' | 'follow_on' | 'ensemble' | 'bayesian' | 'advanced_follow_on';
+  let yearsOfHistory = 3;
+  let suggestionMode: 'all' | 'single' = 'all';
+  let selectedSuggestion: string | undefined;
 
-    if (!isNaN(testYear) && testYear >= 2000 && testYear <= 2100) {
+  // Check if command line arguments are provided
+  if (process.argv.length >= 4) {
+    // Parse command line arguments
+    const yearArg = process.argv[2];
+    const algoArg = process.argv[3];
+    const historyArg = process.argv[4];
+    const suggestionArg = process.argv[5];
+
+    // Parse test year
+    testYear = parseInt(yearArg);
+    if (isNaN(testYear) || testYear < 2000 || testYear > 2100) {
+      console.error('Error: Invalid test year. Please provide a year between 2000 and 2100');
+      process.exit(1);
+    }
+
+    // Parse algorithm
+    const algorithmMap: Record<string, 'classic' | 'classic_optimized' | 'follow_on' | 'ensemble' | 'bayesian' | 'advanced_follow_on'> = {
+      'classic': 'classic',
+      'classic_optimized': 'classic_optimized',
+      'follow_on': 'follow_on',
+      'ensemble': 'ensemble',
+      'bayesian': 'bayesian',
+      'advanced_follow_on': 'advanced_follow_on'
+    };
+
+    algorithm = algorithmMap[algoArg];
+    if (!algorithm) {
+      console.error('Error: Invalid algorithm. Available options: classic, classic_optimized, follow_on, ensemble, bayesian, advanced_follow_on');
+      process.exit(1);
+    }
+
+    // Parse years of history if provided
+    if (historyArg) {
+      const parsedHistory = parseInt(historyArg);
+      if (!isNaN(parsedHistory) && parsedHistory > 0 && parsedHistory <= 10) {
+        yearsOfHistory = parsedHistory;
+      }
+    }
+
+    // Parse suggestion mode if provided
+    if (suggestionArg) {
+      if (suggestionArg === 'all') {
+        suggestionMode = 'all';
+      } else {
+        suggestionMode = 'single';
+        selectedSuggestion = suggestionArg;
+      }
+    }
+
+    console.log(`Using command line parameters:`);
+    console.log(`- Test Year: ${testYear}`);
+    console.log(`- Algorithm: ${algorithm}`);
+    console.log(`- Years of History: ${yearsOfHistory}`);
+    console.log(`- Suggestion Mode: ${suggestionMode}`);
+    if (suggestionMode === 'single') {
+      console.log(`- Selected Suggestion: ${selectedSuggestion}`);
+    }
+  } else {
+    // Interactive mode - Prompt for test year
+    while (true) {
+      const yearInput = await prompt('Enter test year (2000-2100): ');
+      testYear = parseInt(yearInput);
+
+      if (!isNaN(testYear) && testYear >= 2000 && testYear <= 2100) {
+        break;
+      }
+      console.log('Please enter a valid year between 2000 and 2100');
+    }
+
+    // Prompt for algorithm selection
+    while (true) {
+      console.log('\nAvailable algorithms:');
+      console.log('1. Classic (V1) - Statistical analysis with frequency factors');
+      console.log('2. Classic Optimized - Performance-optimized version of Classic');
+      console.log('3. Follow-on (V2) - Pattern-based consecutive draw analysis');
+      console.log('4. Ensemble - Combined approach with dynamic weighting');
+      console.log('5. Bayesian - Probability-based model with evidence updating');
+      console.log('6. Advanced Follow-on - Multi-step chains with conditional probabilities');
+
+      const algoInput = await prompt('\nSelect algorithm (1-6): ');
+
+      switch (algoInput.trim()) {
+        case '1':
+          algorithm = 'classic';
+          break;
+        case '2':
+          algorithm = 'classic_optimized';
+          break;
+        case '3':
+          algorithm = 'follow_on';
+          break;
+        case '4':
+          algorithm = 'ensemble';
+          break;
+        case '5':
+          algorithm = 'bayesian';
+          break;
+        case '6':
+          algorithm = 'advanced_follow_on';
+          break;
+        default:
+          console.log('Please enter 1, 2, 3, 4, 5, or 6');
+          continue;
+      }
       break;
     }
-    console.log('Please enter a valid year between 2000 and 2100');
-  }
 
-  // Prompt for algorithm selection
-  let algorithm: 'classic' | 'classic_optimized' | 'follow_on' | 'ensemble' | 'bayesian' | 'advanced_follow_on';
-  while (true) {
-    console.log('\nAvailable algorithms:');
-    console.log('1. Classic (V1) - Statistical analysis with frequency factors');
-    console.log('2. Classic Optimized - Performance-optimized version of Classic');
-    console.log('3. Follow-on (V2) - Pattern-based consecutive draw analysis');
-    console.log('4. Ensemble - Combined approach with dynamic weighting');
-    console.log('5. Bayesian - Probability-based model with evidence updating');
-    console.log('6. Advanced Follow-on - Multi-step chains with conditional probabilities');
+    // Prompt for suggestion mode
+    while (true) {
+      console.log('\nSuggestion Mode:');
+      console.log('1. Test all suggestion algorithms');
+      console.log('2. Test single suggestion algorithm');
 
-    const algoInput = await prompt('\nSelect algorithm (1-6): ');
+      const modeInput = await prompt('\nSelect suggestion mode (1-2): ');
 
-    switch (algoInput.trim()) {
-      case '1':
-        algorithm = 'classic';
-        break;
-      case '2':
-        algorithm = 'classic_optimized';
-        break;
-      case '3':
-        algorithm = 'follow_on';
-        break;
-      case '4':
-        algorithm = 'ensemble';
-        break;
-      case '5':
-        algorithm = 'bayesian';
-        break;
-      case '6':
-        algorithm = 'advanced_follow_on';
-        break;
-      default:
-        console.log('Please enter 1, 2, 3, 4, 5, or 6');
-        continue;
+      switch (modeInput.trim()) {
+        case '1':
+          suggestionMode = 'all';
+          break;
+        case '2':
+          suggestionMode = 'single';
+          // Prompt for specific suggestion algorithm
+          console.log('\nAvailable suggestion algorithms:');
+          SUGGESTION_ALGORITHMS.forEach((algo, index) => {
+            console.log(`${index + 1}. ${algo.name}`);
+          });
+          const suggestionInput = await prompt('\nSelect suggestion algorithm (1-7): ');
+          const suggestionIndex = parseInt(suggestionInput) - 1;
+          if (suggestionIndex >= 0 && suggestionIndex < SUGGESTION_ALGORITHMS.length) {
+            selectedSuggestion = SUGGESTION_ALGORITHMS[suggestionIndex].type;
+          } else {
+            console.log('Please enter a valid number between 1 and 7');
+            continue;
+          }
+          break;
+        default:
+          console.log('Please enter 1 or 2');
+          continue;
+      }
+      break;
     }
-    break;
-  }
 
-  // Optional: Prompt for years of history
-  let yearsOfHistory = 3;
-  const historyInput = await prompt(`\nEnter years of history to analyze (default: 3): `);
-  if (historyInput.trim()) {
-    const parsedHistory = parseInt(historyInput);
-    if (!isNaN(parsedHistory) && parsedHistory > 0 && parsedHistory <= 10) {
-      yearsOfHistory = parsedHistory;
+    // Optional: Prompt for years of history
+    const historyInput = await prompt(`\nEnter years of history to analyze (default: 3): `);
+    if (historyInput.trim()) {
+      const parsedHistory = parseInt(historyInput);
+      if (!isNaN(parsedHistory) && parsedHistory > 0 && parsedHistory <= 10) {
+        yearsOfHistory = parsedHistory;
+      }
+    }
+
+    console.log(`\nStarting test with:`);
+    console.log(`- Test Year: ${testYear}`);
+    console.log(`- Algorithm: ${algorithm}`);
+    console.log(`- Years of History: ${yearsOfHistory}`);
+    console.log(`- Suggestion Mode: ${suggestionMode}`);
+    if (suggestionMode === 'single') {
+      console.log(`- Selected Suggestion: ${selectedSuggestion}`);
     }
   }
 
-  console.log(`\nStarting test with:`);
-  console.log(`- Test Year: ${testYear}`);
-  console.log(`- Algorithm: ${algorithm}`);
-  console.log(`- Years of History: ${yearsOfHistory}`);
   console.log('=' .repeat(40));
 
   const config: TestConfig = {
     testYear,
     yearsOfHistory,
-    algorithm
+    algorithm,
+    suggestionMode,
+    selectedSuggestion
   };
 
   try {
