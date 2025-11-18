@@ -14,7 +14,7 @@ export interface SuggestedNumber {
  * (This helper function remains unchanged)
  * @returns A 7x7 grid representing the Gann Square.
  */
-function generateGannSquare(): (number | null)[][] {
+export function generateGannSquare(): (number | null)[][] {
   const size = 7;
   const square: (number | null)[][] = Array(size).fill(null).map(() => Array(size).fill(null));
   let x = Math.floor(size / 2);

@@ -6,6 +6,7 @@ import { NumberSelectionProps } from '@/types/mark6';
 import NumberBall from './NumberBall';
 import Select from './Select';
 import { labels, replacePlaceholders } from '@/lib/i18n';
+import { generateGannSquare } from '@/lib/algorithms';
 
 export default function NumberSelection({
   selectedNumbers,
@@ -233,15 +234,38 @@ export default function NumberSelection({
       {/* Number Grid */}
       <div className="grow mb-6">
         <div className="grid grid-cols-7 gap-2 mb-4">
-          {Array.from({ length: 49 }, (_, i) => i + 1).map(number => (
-            <NumberBall
-              key={number}
-              number={number}
-              selected={selectedNumbers.includes(number)}
-              onClick={onNumberToggle}
-              size="md"
-            />
-          ))}
+          {selectedSuggestionType === 'gann_square' ? (
+            // Display numbers in Gann Square pattern
+            (() => {
+              const gannSquare = generateGannSquare();
+              return gannSquare.flatMap((row, rowIndex) =>
+                row.map((num, colIndex) => (
+                  num ? (
+                    <NumberBall
+                      key={num}
+                      number={num}
+                      selected={selectedNumbers.includes(num)}
+                      onClick={onNumberToggle}
+                      size="md"
+                    />
+                  ) : (
+                    <div key={`empty-${rowIndex}-${colIndex}`} className="w-10 h-10" />
+                  )
+                ))
+              );
+            })()
+          ) : (
+            // Display numbers in normal order (1-49)
+            Array.from({ length: 49 }, (_, i) => i + 1).map(number => (
+              <NumberBall
+                key={number}
+                number={number}
+                selected={selectedNumbers.includes(number)}
+                onClick={onNumberToggle}
+                size="md"
+              />
+            ))
+          )}
         </div>
 
         <div className="text-center text-sm text-gray-600">
