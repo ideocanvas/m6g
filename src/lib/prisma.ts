@@ -1,3 +1,5 @@
+import { PrismaClient } from "@prisma/client";
+
 // Create Prisma client based on DATABASE_URL
 function createPrismaClient(useAccelerate?: boolean) {
   const databaseUrl = process.env.DATABASE_URL;
@@ -29,4 +31,4 @@ console.log("databaseUrl", databaseUrl)
 const useAccelerate = databaseUrl?.startsWith('prisma://') || databaseUrl?.startsWith('prisma+postgres://')
 
 // Create Prisma client with conditional Accelerate extension
-export const prisma = createPrismaClient(useAccelerate)
+export const prisma = createPrismaClient(useAccelerate) as PrismaClient;
